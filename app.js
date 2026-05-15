@@ -62,6 +62,10 @@ let ui = {
   selectedProjectId: null,
   projectTab: "boq",
   executionTab: "allItems",
+  accountsTab: "overview",
+  accountsFilterMonth: "all",
+  accountsFilterYear: "all",
+  accountsFilterProjectId: "all",
   expenseTab: "petty",
   rentalSubtab: "rent",
   salarySubtab: "salaries",
@@ -201,6 +205,7 @@ function renderDashboard() {
           ${allowedSections.includes("accounts") ? sidebarButton("accounts", "الحسابات العامة") : ""}
         </nav>
         <div class="sidebar-footer">
+          <p class="muted" style="margin:0 0 8px">المستخدم: ${escapeHtml(user?.name || "-")}</p>
           <button class="btn btn-soft" id="logout-btn" style="width:100%">تسجيل الخروج</button>
         </div>
       </aside>
@@ -210,10 +215,9 @@ function renderDashboard() {
             <button class="btn btn-secondary mobile-menu-btn" id="mobile-menu-btn">☰</button>
             <strong>${titleBySection(ui.section)}</strong>
           </div>
-          <div class="row">
-            <button class="btn btn-secondary" id="toggle-money-btn">${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}</button>
-            ${isAdmin ? `<button class="btn btn-secondary notif-btn" id="open-notifications">🔔 <span>الإشعارات</span> ${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
-            <span class="muted">المستخدم: ${escapeHtml(user?.name || "-")}</span>
+          <div class="row topbar-actions">
+            <button class="btn btn-secondary icon-action-btn" id="toggle-money-btn" title="${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}">${ui.moneyVisible ? "👁️" : "🙈"}</button>
+            ${isAdmin ? `<button class="btn btn-secondary notif-btn icon-action-btn" id="open-notifications" title="الإشعارات">🔔${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
           </div>
         </div>
         ${isAdmin ? notificationsModalTemplate() : ""}
@@ -1656,97 +1660,155 @@ function renderAccountsSection(root) {
     return;
   }
 
-  const reports = getGeneralReports();
+  const reports = getGeneralReports({
+    month: ui.accountsFilterMonth,
+    year: ui.accountsFilterYear,
+    projectId: ui.accountsFilterProjectId,
+  });
+  const years = getAccountsFilterYears();
 
   root.innerHTML = `
     <section class="section-card">
       <div class="row">
-        <h3 class="card-title">الحسابات العامة والتقارير</h3>
-        <button class="btn btn-secondary eye-toggle" id="toggle-finance-visibility">${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}</button>
+        <h3 class="card-title">الحسابات العامة</h3>
       </div>
-      <div class="kpi-grid">
-        <article class="kpi"><h4>إجمالي إيرادات الشركة</h4><p>${showMoney(reports.general.totalRevenue)}</p></article>
-        <article class="kpi"><h4>إجمالي المصروفات</h4><p>${showMoney(reports.general.totalExpenses)}</p></article>
-        <article class="kpi"><h4>صافي الربح</h4><p>${showMoney(reports.general.netProfit)}</p></article>
-      </div>
-    </section>
-
-    <section class="section-card">
-      <h3 class="card-title">تقرير المشاريع</h3>
-      <div class="table-wrap"><table>
-        <thead><tr><th>المشروع</th><th>إجمالي التكاليف</th><th>الربح</th><th>نسبة الإكمال</th></tr></thead>
-        <tbody>
-          ${reports.projects
-            .map(
-              (r) => `<tr><td>${escapeHtml(r.name)}</td><td>${showMoney(r.cost)}</td><td>${showMoney(r.profit)}</td><td>${progressBar(r.completion)}</td></tr>`,
-            )
-            .join("") || "<tr><td colspan='4'>لا توجد بيانات</td></tr>"}
-        </tbody>
-      </table></div>
-    </section>
-
-    <section class="section-card">
-      <h3 class="card-title">تقرير المرتبات</h3>
-      <div class="summary-cards">
-        <article class="summary-card"><h4>إجمالي المرتبات</h4><p>${showMoney(reports.salary.total)}</p></article>
-        <article class="summary-card"><h4>الخصومات</h4><p>${showMoney(reports.salary.deductions)}</p></article>
-        <article class="summary-card"><h4>المدفوع الفعلي</h4><p>${showMoney(reports.salary.net)}</p></article>
+      <div class="grid-3">
+        <div class="field">
+          <label>فلتر الشهر</label>
+          <select class="select" id="accounts-filter-month">
+            <option value="all" ${ui.accountsFilterMonth === "all" ? "selected" : ""}>كل الشهور</option>
+            ${Array.from({ length: 12 }).map((_, i) => `<option value="${i + 1}" ${String(i + 1) === ui.accountsFilterMonth ? "selected" : ""}>${i + 1}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>فلتر السنة</label>
+          <select class="select" id="accounts-filter-year">
+            <option value="all" ${ui.accountsFilterYear === "all" ? "selected" : ""}>كل السنوات</option>
+            ${years.map((y) => `<option value="${y}" ${String(y) === ui.accountsFilterYear ? "selected" : ""}>${y}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>فلتر المشروع</label>
+          <select class="select" id="accounts-filter-project">
+            <option value="all" ${ui.accountsFilterProjectId === "all" ? "selected" : ""}>كل المشاريع</option>
+            ${state.projects.map((p) => `<option value="${p.id}" ${p.id === ui.accountsFilterProjectId ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
+          </select>
+        </div>
       </div>
     </section>
 
     <section class="section-card">
-      <h3 class="card-title">تقرير مقاولو الباطن</h3>
-      <div class="table-wrap"><table>
-      <thead><tr><th>المشروع</th><th>الإجمالي</th></tr></thead>
-      <tbody>
-        ${reports.subcontractors
-          .map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.total)}</td></tr>`)
-          .join("") || "<tr><td colspan='2'>لا توجد بيانات</td></tr>"}
-      </tbody>
-      </table></div>
+      <div class="tabs" id="accounts-tabs">
+        ${tabButton("overview", "ملخص الحسابات العامة", ui.accountsTab)}
+        ${tabButton("projectsReport", "تقرير المشاريع", ui.accountsTab)}
+        ${tabButton("salaryReport", "تقرير المرتبات", ui.accountsTab)}
+        ${tabButton("subcontractReport", "تقرير مقاولو الباطن", ui.accountsTab)}
+        ${tabButton("equipmentReport", "تقرير المعدات", ui.accountsTab)}
+        ${tabButton("executionReport", "تقرير التنفيذ", ui.accountsTab)}
+        ${tabButton("expensesReport", "تقرير المصروفات التفصيلي", ui.accountsTab)}
+      </div>
     </section>
 
-    <section class="section-card">
-      <h3 class="card-title">تقرير المعدات</h3>
-      <div class="table-wrap"><table>
-      <thead><tr><th>المشروع</th><th>تكاليف الإيجار</th><th>الأعطال</th><th>الإضافي</th></tr></thead>
-      <tbody>
-        ${reports.equipment
-          .map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.rental)}</td><td>${showMoney(r.faults)}</td><td>${showMoney(r.extras)}</td></tr>`)
-          .join("") || "<tr><td colspan='4'>لا توجد بيانات</td></tr>"}
-      </tbody>
-      </table></div>
-    </section>
+    ${ui.accountsTab === "overview" ? `
+      <section class="section-card">
+        <h3 class="card-title">ملخص الحسابات العامة والتقارير</h3>
+        <div class="kpi-grid">
+          <article class="kpi"><h4>إجمالي إيرادات الشركة</h4><p>${showMoney(reports.general.totalRevenue)}</p></article>
+          <article class="kpi"><h4>إجمالي المصروفات</h4><p>${showMoney(reports.general.totalExpenses)}</p></article>
+          <article class="kpi"><h4>صافي الربح</h4><p>${showMoney(reports.general.netProfit)}</p></article>
+        </div>
+      </section>
+    ` : ""}
 
-    <section class="section-card">
-      <h3 class="card-title">تقرير التنفيذ</h3>
-      <div class="table-wrap"><table>
-      <thead><tr><th>المشروع</th><th>نسبة الإكمال</th></tr></thead>
-      <tbody>
-        ${reports.execution
-          .map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${progressBar(r.completion)}</td></tr>`)
-          .join("") || "<tr><td colspan='2'>لا توجد بيانات</td></tr>"}
-      </tbody>
-      </table></div>
-    </section>
+    ${ui.accountsTab === "projectsReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير المشاريع</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>المشروع</th><th>إجمالي التكاليف</th><th>الربح</th><th>نسبة الإكمال</th></tr></thead>
+          <tbody>
+            ${reports.projects.map((r) => `<tr><td>${escapeHtml(r.name)}</td><td>${showMoney(r.cost)}</td><td>${showMoney(r.profit)}</td><td>${progressBar(r.completion)}</td></tr>`).join("") || "<tr><td colspan='4'>لا توجد بيانات</td></tr>"}
+          </tbody>
+        </table></div>
+      </section>
+    ` : ""}
 
-    <section class="section-card">
-      <h3 class="card-title">تقرير المصروفات التفصيلي</h3>
-      <div class="table-wrap"><table>
-      <thead><tr><th>المشروع</th><th>نثرية</th><th>تشغيل</th><th>إيجار</th><th>مرتبات</th></tr></thead>
-      <tbody>
-        ${reports.expensesDetail
-          .map(
-            (r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.petty)}</td><td>${showMoney(r.operation)}</td><td>${showMoney(r.rental)}</td><td>${showMoney(r.salary)}</td></tr>`,
-          )
-          .join("") || "<tr><td colspan='5'>لا توجد بيانات</td></tr>"}
-      </tbody>
-      </table></div>
-    </section>
+    ${ui.accountsTab === "salaryReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير المرتبات</h3>
+        <div class="summary-cards">
+          <article class="summary-card"><h4>إجمالي المرتبات</h4><p>${showMoney(reports.salary.total)}</p></article>
+          <article class="summary-card"><h4>الخصومات</h4><p>${showMoney(reports.salary.deductions)}</p></article>
+          <article class="summary-card"><h4>المدفوع الفعلي</h4><p>${showMoney(reports.salary.net)}</p></article>
+        </div>
+      </section>
+    ` : ""}
+
+    ${ui.accountsTab === "subcontractReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير مقاولو الباطن</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>المشروع</th><th>الإجمالي</th></tr></thead>
+          <tbody>
+            ${reports.subcontractors.map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.total)}</td></tr>`).join("") || "<tr><td colspan='2'>لا توجد بيانات</td></tr>"}
+          </tbody>
+        </table></div>
+      </section>
+    ` : ""}
+
+    ${ui.accountsTab === "equipmentReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير المعدات</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>المشروع</th><th>تكاليف الإيجار</th><th>الأعطال</th><th>الإضافي</th></tr></thead>
+          <tbody>
+            ${reports.equipment.map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.rental)}</td><td>${showMoney(r.faults)}</td><td>${showMoney(r.extras)}</td></tr>`).join("") || "<tr><td colspan='4'>لا توجد بيانات</td></tr>"}
+          </tbody>
+        </table></div>
+      </section>
+    ` : ""}
+
+    ${ui.accountsTab === "executionReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير التنفيذ</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>المشروع</th><th>نسبة الإكمال</th></tr></thead>
+          <tbody>
+            ${reports.execution.map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${progressBar(r.completion)}</td></tr>`).join("") || "<tr><td colspan='2'>لا توجد بيانات</td></tr>"}
+          </tbody>
+        </table></div>
+      </section>
+    ` : ""}
+
+    ${ui.accountsTab === "expensesReport" ? `
+      <section class="section-card">
+        <h3 class="card-title">تقرير المصروفات التفصيلي</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>المشروع</th><th>نثرية</th><th>تشغيل</th><th>إيجار</th><th>مرتبات</th></tr></thead>
+          <tbody>
+            ${reports.expensesDetail.map((r) => `<tr><td>${escapeHtml(r.projectName)}</td><td>${showMoney(r.petty)}</td><td>${showMoney(r.operation)}</td><td>${showMoney(r.rental)}</td><td>${showMoney(r.salary)}</td></tr>`).join("") || "<tr><td colspan='5'>لا توجد بيانات</td></tr>"}
+          </tbody>
+        </table></div>
+      </section>
+    ` : ""}
   `;
 
-  document.getElementById("toggle-finance-visibility").addEventListener("click", () => {
-    ui.moneyVisible = !ui.moneyVisible;
+  document.querySelectorAll("#accounts-tabs .tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      ui.accountsTab = btn.dataset.tab;
+      render();
+    });
+  });
+
+  document.getElementById("accounts-filter-month")?.addEventListener("change", (e) => {
+    ui.accountsFilterMonth = e.target.value;
+    render();
+  });
+  document.getElementById("accounts-filter-year")?.addEventListener("change", (e) => {
+    ui.accountsFilterYear = e.target.value;
+    render();
+  });
+  document.getElementById("accounts-filter-project")?.addEventListener("change", (e) => {
+    ui.accountsFilterProjectId = e.target.value;
     render();
   });
 }
@@ -1858,6 +1920,7 @@ function bindProjectCreateForm() {
       id: crypto.randomUUID(),
       name,
       startDate,
+      createdAt: new Date().toISOString(),
       type,
       documentName: documentFile && typeof documentFile === "object" ? documentFile.name : "",
       customFields,
@@ -2331,8 +2394,15 @@ function bindProjectEquipmentsForm(project) {
   });
 }
 
-function getGeneralReports() {
-  const projects = state.projects.map((project) => {
+function getGeneralReports(filters = {}) {
+  const filteredProjects = state.projects.filter((project) => {
+    if (filters.projectId && filters.projectId !== "all" && project.id !== filters.projectId) return false;
+    const dateValue = project.startDate || project.createdAt || "";
+    if (!matchesMonthYear(dateValue, filters.month, filters.year)) return false;
+    return true;
+  });
+
+  const projects = filteredProjects.map((project) => {
     const summary = getProjectFinancialSummary(project);
     const completion = getProjectCompletion(project);
     const boqTotal = project.boq.reduce((s, b) => s + Number(b.total || 0), 0);
@@ -2352,8 +2422,8 @@ function getGeneralReports() {
   const totalRevenue = projects.reduce((s, p) => s + p.revenue, 0);
   const totalExpenses = projects.reduce((s, p) => s + p.cost, 0);
 
-  const totalSalaries = state.workers.reduce((s, w) => s + Number(w.salary || 0), 0) * Math.max(projects.length, 1);
-  const deductions = state.projects.reduce(
+  const totalSalaries = state.workers.reduce((s, w) => s + Number(w.salary || 0), 0) * projects.length;
+  const deductions = filteredProjects.reduce(
     (s, p) => s + p.expenses.salary.deductions.reduce((x, y) => x + Number(y.amount || 0), 0),
     0,
   );
@@ -2370,11 +2440,11 @@ function getGeneralReports() {
       deductions,
       net: Math.max(totalSalaries - deductions, 0),
     },
-    subcontractors: state.projects.map((p) => ({
+    subcontractors: filteredProjects.map((p) => ({
       projectName: p.name,
       total: p.subcontractors.reduce((s, c) => s + Number(c.total || 0), 0),
     })),
-    equipment: state.projects.map((p) => {
+    equipment: filteredProjects.map((p) => {
       const rental = p.expenses.rental.items.reduce(
         (s, item) => s + getRentalNet(item, p.expenses.rental.faults, p.expenses.rental.extras).net,
         0,
@@ -2388,11 +2458,11 @@ function getGeneralReports() {
         extras,
       };
     }),
-    execution: state.projects.map((p) => ({
+    execution: filteredProjects.map((p) => ({
       projectName: p.name,
       completion: getProjectCompletion(p),
     })),
-    expensesDetail: state.projects.map((p) => {
+    expensesDetail: filteredProjects.map((p) => {
       const petty = p.expenses.petty.reduce((s, x) => s + Number(x.amount || 0), 0);
       const operation = p.expenses.operation.reduce((s, x) => s + Number(x.total || 0), 0);
       const rental = p.expenses.rental.items.reduce(
@@ -2413,6 +2483,25 @@ function getGeneralReports() {
       };
     }),
   };
+}
+
+function matchesMonthYear(dateValue, month, year) {
+  if ((!month || month === "all") && (!year || year === "all")) return true;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+  const monthMatch = !month || month === "all" ? true : date.getMonth() + 1 === Number(month);
+  const yearMatch = !year || year === "all" ? true : date.getFullYear() === Number(year);
+  return monthMatch && yearMatch;
+}
+
+function getAccountsFilterYears() {
+  const yearsSet = new Set();
+  state.projects.forEach((p) => {
+    const d = new Date(p.startDate || p.createdAt || "");
+    if (!Number.isNaN(d.getTime())) yearsSet.add(d.getFullYear());
+  });
+  if (!yearsSet.size) yearsSet.add(new Date().getFullYear());
+  return Array.from(yearsSet).sort((a, b) => b - a);
 }
 
 function getProjectFinancialSummary(project) {
@@ -2499,6 +2588,7 @@ function getProjectCompletion(project) {
 
 function normalizeProjectData(project) {
   const normalized = { ...project };
+  normalized.createdAt = normalized.createdAt || normalized.startDate || new Date().toISOString();
   normalized.boq = (project.boq || []).map((b) => ({
     ...b,
     qty: Number(b.qty || 0),
