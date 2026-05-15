@@ -424,12 +424,11 @@ function renderProjectsSection(root) {
     <section class="section-card">
       <h3 class="card-title">الملخص المالي للمشروع</h3>
       <div class="summary-cards">
-        <article class="summary-card"><h4>إجمالي مقاولو الباطن</h4><p>${formatMoney(summary.totalSubcontractors)}</p></article>
-        <article class="summary-card"><h4>إجمالي التشغيل الذاتي</h4><p>${formatMoney(summary.selfExecution)}</p></article>
+        <article class="summary-card"><h4>إجمالي مقاولو الباطن</h4><p>${formatMoney(summary.totalSubcontractors)} (${summary.subcontractValuePercent.toFixed(1)}%)</p></article>
+        <article class="summary-card"><h4>إجمالي التشغيل الذاتي</h4><p>${formatMoney(summary.selfExecution)} (${summary.selfExecutionValuePercent.toFixed(1)}%)</p></article>
         <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(summary.totalExpenses)}</p></article>
-        <article class="summary-card"><h4>نسبة التشغيل الذاتي</h4><p>${summary.qtyStats.selfPercent.toFixed(1)}%</p></article>
-        <article class="summary-card"><h4>نسبة مقاولي الباطن</h4><p>${summary.qtyStats.subcontractPercent.toFixed(1)}%</p></article>
         <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)}</p></article>
+        <article class="summary-card"><h4>كمية مقاولي الباطن</h4><p>${num(summary.qtyStats.subcontractQty)}</p></article>
       </div>
     </section>
   `;
@@ -462,22 +461,11 @@ function renderProjectTabContent(project) {
     const rows = project.boq
       .map((item) => {
         const executed = Number(item.executedQty || 0);
-        const subcontractExecuted = getSubcontractExecutedQtyForBoq(project, item.id);
-        const selfExecuted = Math.max(executed - subcontractExecuted, 0);
-        const subcontractAssigned = getSubcontractAssignedQtyForBoq(project, item.id);
-        const selfAvailable = Math.max(Number(item.qty || 0) - subcontractAssigned, 0);
-        const remaining = Math.max(selfAvailable - selfExecuted, 0);
         const progress = Number(item.qty || 0) > 0 ? (executed / Number(item.qty || 0)) * 100 : 0;
         return `
           <tr>
             <td>${escapeHtml(item.itemName)}</td>
             <td>${num(item.qty)}</td>
-            <td>${num(subcontractAssigned)}</td>
-            <td>${num(selfAvailable)}</td>
-            <td>${num(selfExecuted)}</td>
-            <td>${num(subcontractExecuted)}</td>
-            <td>${num(executed)}</td>
-            <td>${num(remaining)}</td>
             <td>${progressBar(progress)}</td>
           </tr>
         `;
@@ -491,7 +479,7 @@ function renderProjectTabContent(project) {
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>اسم البند</th><th>الكمية الإجمالية</th><th>كمية الباطن</th><th>تشغيل ذاتي متاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr>
+                <tr><th>اسم البند</th><th>الكمية الإجمالية</th><th>نسبة الإكمال</th></tr>
               </thead>
               <tbody>${rows}</tbody>
             </table>
@@ -2516,6 +2504,8 @@ function getProjectFinancialSummary(project) {
   const totalSubcontractors = project.subcontractors.reduce((sum, s) => sum + Number(s.total || 0), 0);
   const boqTotal = project.boq.reduce((sum, b) => sum + Number(b.total || 0), 0);
   const selfExecution = Math.max(boqTotal - totalSubcontractors, 0);
+  const subcontractValuePercent = boqTotal > 0 ? Math.min((totalSubcontractors / boqTotal) * 100, 100) : 0;
+  const selfExecutionValuePercent = boqTotal > 0 ? Math.min((selfExecution / boqTotal) * 100, 100) : 0;
   const qtyStats = getSubcontractQtyStats(project);
 
   const petty = project.expenses.petty.reduce((sum, x) => sum + Number(x.amount || 0), 0);
@@ -2537,6 +2527,8 @@ function getProjectFinancialSummary(project) {
   return {
     totalSubcontractors,
     selfExecution,
+    subcontractValuePercent,
+    selfExecutionValuePercent,
     totalExpenses,
     qtyStats,
   };
@@ -2937,11 +2929,13 @@ function projectCreateFormTemplate(inModal = false) {
             <div class="field"><label>الوحدة</label><select class="select" name="boqUnit">${unitOptionsHtml()}</select></div>
             <div class="field"><label>سعر الوحدة</label><input class="input" type="number" min="0" step="0.01" name="boqUnitPrice" /></div>
             <div class="field"><label>الإجمالي</label><input id="boq-total-preview" class="input" readonly value="0" /></div>
-            <div class="field" style="align-self:end"><button type="button" class="btn btn-secondary" id="add-boq-row">إضافة مقايسة</button></div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn btn-secondary" id="add-boq-row">إضافة مقايسة</button>
           </div>
           ${projectDraft.boq.length ? `
-            <div class="table-wrap" style="margin-top:10px">
-              <table>
+            <div class="project-measurements-table-scroll" style="margin-top:10px">
+              <table class="project-draft-table">
                 <thead><tr><th>اسم البند</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>إجراء</th></tr></thead>
                 <tbody>
                   ${projectDraft.boq
@@ -2962,7 +2956,7 @@ function projectCreateFormTemplate(inModal = false) {
     </section>
   `;
   if (!inModal) return content;
-  return `<div class="modal-backdrop" id="project-modal-backdrop"><div class="modal">${content}</div></div>`;
+  return `<div class="modal-backdrop" id="project-modal-backdrop"><div class="modal project-create-modal">${content}</div></div>`;
 }
 
 function getEmptyProjectDraft() {
