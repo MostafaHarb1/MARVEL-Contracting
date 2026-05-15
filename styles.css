@@ -29,7 +29,7 @@ body {
   color: var(--text);
   font-family: "IBM Plex Sans Arabic", sans-serif;
   font-variant-numeric: lining-nums;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 button,
@@ -432,6 +432,16 @@ textarea {
   flex-wrap: wrap;
 }
 
+.project-header-row {
+  margin-bottom: 10px;
+}
+
+.project-header-actions {
+  width: 100%;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
 .tab-btn,
 .subtab-btn {
   border: 1px solid #d3e1f1;
@@ -465,8 +475,7 @@ table {
 }
 
 .execution-table {
-  width: max-content;
-  min-width: 900px;
+  width: 100%;
 }
 
 th,
@@ -677,12 +686,23 @@ th {
   .tabs,
   .subtabs,
   .settings-tabs {
+    display: flex;
     overflow-x: auto;
     white-space: nowrap;
     flex-wrap: nowrap;
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
+  }
+
+  .tabs .tab-btn,
+  .tabs .subtab-btn,
+  .subtabs .tab-btn,
+  .subtabs .subtab-btn,
+  .settings-tabs .tab-btn,
+  .settings-tabs .subtab-btn {
+    flex: 0 0 auto;
+    min-width: max-content;
   }
 
   .accounts-tabs-scroll {
@@ -713,6 +733,7 @@ th {
 
   .project-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .summary-cards,
@@ -741,13 +762,13 @@ th {
 
   table {
     min-width: 100%;
-    table-layout: fixed;
+    table-layout: auto;
   }
 
   th,
   td {
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    word-break: normal;
     font-size: 0.82rem;
     padding: 8px 6px;
   }

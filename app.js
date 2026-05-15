@@ -401,9 +401,9 @@ function renderProjectsSection(root) {
 
   root.innerHTML = `
     <section class="section-card">
-      <div class="row">
+      <div class="row project-header-row">
         <h3 class="card-title">${escapeHtml(project.name)}</h3>
-        <div class="row">
+        <div class="row project-header-actions">
           <button class="btn btn-secondary" id="back-project-list">العودة لقائمة المشاريع</button>
           <button class="btn btn-danger" id="delete-project-inside">حذف المشروع</button>
         </div>
