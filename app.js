@@ -346,7 +346,7 @@ function renderProjectsSection(root) {
         </div>
       </section>
       <section class="section-card">
-        <div class="row">
+        <div class="row projects-list-header">
           <h3 class="card-title">قائمة المشاريع</h3>
           <button class="btn btn-primary" id="open-project-modal">إضافة مشروع</button>
         </div>
@@ -400,7 +400,7 @@ function renderProjectsSection(root) {
   const summary = getProjectFinancialSummary(project);
 
   root.innerHTML = `
-    <section class="section-card">
+    <section class="section-card project-header-card">
       <div class="row project-header-row">
         <h3 class="card-title">${escapeHtml(project.name)}</h3>
         <div class="row project-header-actions">
@@ -408,7 +408,9 @@ function renderProjectsSection(root) {
           <button class="btn btn-danger" id="delete-project-inside">حذف المشروع</button>
         </div>
       </div>
+    </section>
 
+    <section class="section-card project-tabs-card">
       <div class="tabs" id="project-tabs">
         ${tabButton("boq", "المقايسات", ui.projectTab)}
         ${tabButton("expenses", "المصروفات", ui.projectTab)}

@@ -29,7 +29,7 @@ body {
   color: var(--text);
   font-family: "IBM Plex Sans Arabic", sans-serif;
   font-variant-numeric: lining-nums;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 button,
@@ -233,6 +233,7 @@ textarea {
 
 .content {
   padding: 18px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -347,7 +348,11 @@ textarea {
 .project-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  gap: 14px;
+}
+
+.projects-list-header {
+  margin-bottom: 24px;
 }
 
 .project-card {
@@ -433,13 +438,20 @@ textarea {
 }
 
 .project-header-row {
-  margin-bottom: 10px;
+  margin-bottom: 0;
+  align-items: flex-start;
 }
 
 .project-header-actions {
-  width: 100%;
-  justify-content: flex-start;
-  margin-top: 2px;
+  width: auto;
+  justify-content: flex-end;
+  margin-top: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.project-tabs-card {
+  margin-top: 0;
 }
 
 .tab-btn,
@@ -734,6 +746,19 @@ th {
   .project-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .projects-list-header {
+    margin-bottom: 24px;
+  }
+
+  .project-header-row {
+    gap: 10px;
+  }
+
+  .project-header-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .summary-cards,
