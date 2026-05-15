@@ -211,13 +211,13 @@ function renderDashboard() {
       </aside>
       <main class="content">
         <div class="topbar">
-          <div class="row">
+          <div class="row topbar-main">
             <button class="btn btn-secondary mobile-menu-btn" id="mobile-menu-btn">☰</button>
             <strong>${titleBySection(ui.section)}</strong>
-          </div>
-          <div class="row topbar-actions">
-            <button class="btn btn-secondary icon-action-btn" id="toggle-money-btn" title="${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}">${ui.moneyVisible ? outlineEyeIcon() : outlineEyeOffIcon()}</button>
-            ${isAdmin ? `<button class="btn btn-secondary notif-btn icon-action-btn" id="open-notifications" title="الإشعارات">${outlineBellIcon()}${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
+            <div class="row topbar-actions">
+              <button class="btn btn-secondary icon-action-btn" id="toggle-money-btn" title="${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}">${ui.moneyVisible ? outlineEyeIcon() : outlineEyeOffIcon()}</button>
+              ${isAdmin ? `<button class="btn btn-secondary notif-btn icon-action-btn" id="open-notifications" title="الإشعارات">${outlineBellIcon()}${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
+            </div>
           </div>
         </div>
         ${isAdmin ? notificationsModalTemplate() : ""}
