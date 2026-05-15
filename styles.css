@@ -301,6 +301,9 @@ textarea {
 
 .topbar-actions {
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .icon-action-btn {
@@ -630,7 +633,14 @@ th {
   .topbar-actions {
     width: auto !important;
     justify-content: flex-end;
+    align-items: center;
+    flex-wrap: nowrap !important;
     gap: 8px;
+  }
+
+  .topbar-actions .icon-action-btn {
+    margin: 0;
+    flex: 0 0 auto;
   }
 
   .btn-add {
