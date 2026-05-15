@@ -1698,14 +1698,16 @@ function renderAccountsSection(root) {
     </section>
 
     <section class="section-card">
-      <div class="tabs" id="accounts-tabs">
-        ${tabButton("overview", "ملخص الحسابات العامة", ui.accountsTab)}
-        ${tabButton("projectsReport", "تقرير المشاريع", ui.accountsTab)}
-        ${tabButton("salaryReport", "تقرير المرتبات", ui.accountsTab)}
-        ${tabButton("subcontractReport", "تقرير مقاولو الباطن", ui.accountsTab)}
-        ${tabButton("equipmentReport", "تقرير المعدات", ui.accountsTab)}
-        ${tabButton("executionReport", "تقرير التنفيذ", ui.accountsTab)}
-        ${tabButton("expensesReport", "تقرير المصروفات التفصيلي", ui.accountsTab)}
+      <div class="accounts-tabs-scroll">
+        <div class="tabs" id="accounts-tabs">
+          ${tabButton("overview", "ملخص الحسابات العامة", ui.accountsTab)}
+          ${tabButton("projectsReport", "تقرير المشاريع", ui.accountsTab)}
+          ${tabButton("salaryReport", "تقرير المرتبات", ui.accountsTab)}
+          ${tabButton("subcontractReport", "تقرير مقاولو الباطن", ui.accountsTab)}
+          ${tabButton("equipmentReport", "تقرير المعدات", ui.accountsTab)}
+          ${tabButton("executionReport", "تقرير التنفيذ", ui.accountsTab)}
+          ${tabButton("expensesReport", "تقرير المصروفات التفصيلي", ui.accountsTab)}
+        </div>
       </div>
     </section>
 

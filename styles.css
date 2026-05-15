@@ -464,6 +464,11 @@ table {
   min-width: 740px;
 }
 
+.execution-table {
+  width: max-content;
+  min-width: 900px;
+}
+
 th,
 td {
   padding: 10px;
@@ -680,6 +685,14 @@ th {
     touch-action: pan-x;
   }
 
+  .accounts-tabs-scroll {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
   #accounts-tabs {
     display: flex;
     flex-wrap: nowrap !important;
@@ -758,13 +771,13 @@ th {
   }
 
   .execution-scroll-inner {
-    min-width: 980px;
+    min-width: 900px;
     width: max-content;
   }
 
   .execution-table {
-    min-width: 980px !important;
-    width: 980px !important;
+    min-width: 900px !important;
+    width: max-content !important;
     table-layout: auto !important;
   }
 
