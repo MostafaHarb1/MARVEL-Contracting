@@ -1048,7 +1048,7 @@ function renderExecutionSection(root) {
     ${ui.executionTab === "allItems" ? `
       <section class="section-card">
         <h3 class="card-title">كل البنود من جميع المشاريع</h3>
-        ${flatBoq.length ? `<div class="table-wrap execution-table-wrap"><table class="execution-table"><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
+        ${flatBoq.length ? `<div class="table-wrap execution-table-wrap"><div class="execution-scroll-inner"><table class="execution-table"><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
       </section>
     ` : ""}
 

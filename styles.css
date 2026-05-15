@@ -306,6 +306,17 @@ textarea {
   gap: 8px;
 }
 
+.topbar-main {
+  width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.topbar-main strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .icon-action-btn {
   width: 40px;
   min-width: 40px;
@@ -622,12 +633,22 @@ th {
 @media (max-width: 760px) {
   .topbar {
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 12px;
   }
 
-  .topbar > .row {
+  .topbar-main {
     width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-main strong {
+    font-size: 0.98rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .topbar-actions {
@@ -636,6 +657,7 @@ th {
     align-items: center;
     flex-wrap: nowrap !important;
     gap: 8px;
+    margin-inline-start: auto;
   }
 
   .topbar-actions .icon-action-btn {
@@ -654,6 +676,26 @@ th {
     white-space: nowrap;
     flex-wrap: nowrap;
     padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  #accounts-tabs {
+    display: flex;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #accounts-tabs .tab-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-width: max-content;
   }
 
   .project-grid {
@@ -712,10 +754,17 @@ th {
     max-width: 100%;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
+    display: block;
+  }
+
+  .execution-scroll-inner {
+    min-width: 980px;
+    width: max-content;
   }
 
   .execution-table {
     min-width: 980px !important;
+    width: 980px !important;
     table-layout: auto !important;
   }
 
