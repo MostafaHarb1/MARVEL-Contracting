@@ -216,8 +216,8 @@ function renderDashboard() {
             <strong>${titleBySection(ui.section)}</strong>
           </div>
           <div class="row topbar-actions">
-            <button class="btn btn-secondary icon-action-btn" id="toggle-money-btn" title="${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}">${ui.moneyVisible ? "👁️" : "🙈"}</button>
-            ${isAdmin ? `<button class="btn btn-secondary notif-btn icon-action-btn" id="open-notifications" title="الإشعارات">🔔${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
+            <button class="btn btn-secondary icon-action-btn" id="toggle-money-btn" title="${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}">${ui.moneyVisible ? outlineEyeIcon() : outlineEyeOffIcon()}</button>
+            ${isAdmin ? `<button class="btn btn-secondary notif-btn icon-action-btn" id="open-notifications" title="الإشعارات">${outlineBellIcon()}${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
           </div>
         </div>
         ${isAdmin ? notificationsModalTemplate() : ""}
@@ -1665,7 +1665,7 @@ function renderAccountsSection(root) {
     year: ui.accountsFilterYear,
     projectId: ui.accountsFilterProjectId,
   });
-  const years = getAccountsFilterYears();
+  const years = getAccountsYearRange();
 
   root.innerHTML = `
     <section class="section-card">
@@ -1674,17 +1674,17 @@ function renderAccountsSection(root) {
       </div>
       <div class="grid-3">
         <div class="field">
-          <label>فلتر الشهر</label>
-          <select class="select" id="accounts-filter-month">
-            <option value="all" ${ui.accountsFilterMonth === "all" ? "selected" : ""}>كل الشهور</option>
-            ${Array.from({ length: 12 }).map((_, i) => `<option value="${i + 1}" ${String(i + 1) === ui.accountsFilterMonth ? "selected" : ""}>${i + 1}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field">
           <label>فلتر السنة</label>
           <select class="select" id="accounts-filter-year">
             <option value="all" ${ui.accountsFilterYear === "all" ? "selected" : ""}>كل السنوات</option>
             ${years.map((y) => `<option value="${y}" ${String(y) === ui.accountsFilterYear ? "selected" : ""}>${y}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>فلتر الشهر</label>
+          <select class="select" id="accounts-filter-month">
+            <option value="all" ${ui.accountsFilterMonth === "all" ? "selected" : ""}>كل الشهور</option>
+            ${Array.from({ length: 12 }).map((_, i) => `<option value="${i + 1}" ${String(i + 1) === ui.accountsFilterMonth ? "selected" : ""}>${i + 1}</option>`).join("")}
           </select>
         </div>
         <div class="field">
@@ -2504,6 +2504,10 @@ function getAccountsFilterYears() {
   return Array.from(yearsSet).sort((a, b) => b - a);
 }
 
+function getAccountsYearRange() {
+  return Array.from({ length: 2090 - 2010 + 1 }, (_, i) => 2010 + i);
+}
+
 function getProjectFinancialSummary(project) {
   const totalSubcontractors = project.subcontractors.reduce((sum, s) => sum + Number(s.total || 0), 0);
   const boqTotal = project.boq.reduce((sum, b) => sum + Number(b.total || 0), 0);
@@ -2764,6 +2768,18 @@ function titleBySection(section) {
   if (section === "settings") return "الإعدادات";
   if (section === "accounts") return "الحسابات العامة";
   return "لوحة التحكم";
+}
+
+function outlineEyeIcon() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+function outlineEyeOffIcon() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6c2.3 0 4.2.7 5.8 1.7"/><path d="M22 12s-3.5 6-10 6c-2.3 0-4.2-.7-5.8-1.7"/><path d="M3 3l18 18"/></svg>`;
+}
+
+function outlineBellIcon() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`;
 }
 
 function sidebarButton(id, title) {
