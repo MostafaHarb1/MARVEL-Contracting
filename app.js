@@ -53,6 +53,7 @@ const initialState = {
   companyEquipments: [],
   projects: [],
   executionLogs: [],
+  notifications: [],
 };
 
 let state = loadState();
@@ -60,6 +61,7 @@ let ui = {
   section: "projects",
   selectedProjectId: null,
   projectTab: "boq",
+  executionTab: "allItems",
   expenseTab: "petty",
   rentalSubtab: "rent",
   salarySubtab: "salaries",
@@ -108,6 +110,7 @@ function loadState() {
       companyEquipments: parsed.companyEquipments || [],
       projects: (parsed.projects || []).map(normalizeProjectData),
       executionLogs: parsed.executionLogs || [],
+      notifications: parsed.notifications || [],
     };
   } catch {
     return structuredClone(initialState);
@@ -179,6 +182,8 @@ function renderLogin() {
 
 function renderDashboard() {
   const user = state.systemUsers.find((u) => u.id === state.session.userId);
+  const isAdmin = isAdminUser(user);
+  const unreadNotifications = state.notifications.filter((n) => !n.read).length;
   const allowedSections = getAllowedSectionsForUser(user);
   if (!allowedSections.includes(ui.section)) {
     ui.section = allowedSections[0] || "projects";
@@ -207,9 +212,11 @@ function renderDashboard() {
           </div>
           <div class="row">
             <button class="btn btn-secondary" id="toggle-money-btn">${ui.moneyVisible ? "إخفاء المبالغ" : "إظهار المبالغ"}</button>
+            ${isAdmin ? `<button class="btn btn-secondary notif-btn" id="open-notifications">🔔 <span>الإشعارات</span> ${unreadNotifications ? `<b>${unreadNotifications}</b>` : ""}</button>` : ""}
             <span class="muted">المستخدم: ${escapeHtml(user?.name || "-")}</span>
           </div>
         </div>
+        ${isAdmin ? notificationsModalTemplate() : ""}
         <div id="section-root"></div>
       </main>
     </div>
@@ -239,6 +246,30 @@ function renderDashboard() {
       render();
     });
   }
+  const openNotificationsBtn = document.getElementById("open-notifications");
+  if (openNotificationsBtn) {
+    openNotificationsBtn.addEventListener("click", () => {
+      const modal = document.getElementById("notifications-modal");
+      modal?.classList.remove("hidden");
+      state.notifications.forEach((n) => {
+        n.read = true;
+      });
+      saveState();
+    });
+  }
+  const closeNotificationsBtn = document.getElementById("close-notifications");
+  if (closeNotificationsBtn) {
+    closeNotificationsBtn.addEventListener("click", () => {
+      document.getElementById("notifications-modal")?.classList.add("hidden");
+      render();
+    });
+  }
+  document.getElementById("notifications-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "notifications-modal") {
+      e.target.classList.add("hidden");
+      render();
+    }
+  });
 
   document.getElementById("logout-btn").addEventListener("click", () => {
     state.session.isLoggedIn = false;
@@ -1004,15 +1035,33 @@ function renderExecutionSection(root) {
     </section>
 
     <section class="section-card">
-      <h3 class="card-title">كل البنود من جميع المشاريع</h3>
-      ${flatBoq.length ? `<div class="table-wrap"><table><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
+      <div class="tabs" id="execution-tabs">
+        ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
+        ${tabButton("logs", "سجل التنفيذ", ui.executionTab)}
+      </div>
     </section>
 
-    <section class="section-card">
-      <h3 class="card-title">سجل التنفيذ</h3>
-      ${state.executionLogs.length ? `<div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقايسة</th><th>المنفذ</th><th>الكمية</th><th>الوقت</th></tr></thead><tbody>${executionRows}</tbody></table></div>` : '<div class="empty">لا توجد عمليات تنفيذ بعد</div>'}
-    </section>
+    ${ui.executionTab === "allItems" ? `
+      <section class="section-card">
+        <h3 class="card-title">كل البنود من جميع المشاريع</h3>
+        ${flatBoq.length ? `<div class="table-wrap execution-table-wrap"><table class="execution-table"><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
+      </section>
+    ` : ""}
+
+    ${ui.executionTab === "logs" ? `
+      <section class="section-card">
+        <h3 class="card-title">سجل التنفيذ</h3>
+        ${state.executionLogs.length ? `<div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقايسة</th><th>المنفذ</th><th>الكمية</th><th>الوقت</th></tr></thead><tbody>${executionRows}</tbody></table></div>` : '<div class="empty">لا توجد عمليات تنفيذ بعد</div>'}
+      </section>
+    ` : ""}
   `;
+
+  document.querySelectorAll("#execution-tabs .tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      ui.executionTab = btn.dataset.tab;
+      render();
+    });
+  });
 
   const openExecutionModal = document.getElementById("open-execution-modal");
   const closeExecutionModal = document.getElementById("close-execution-modal");
@@ -1157,6 +1206,7 @@ function renderExecutionSection(root) {
       executedQty,
       createdAt: new Date().toISOString(),
     });
+    addAdminNotification("إضافة تنفيذ", `تم تسجيل تنفيذ في مشروع ${project.name} - بند ${boq.itemName} بكمية ${num(executedQty)}`);
 
     saveState();
     render();
@@ -1263,6 +1313,7 @@ function renderEquipmentsSection(root) {
       purchaseDate,
       maintenanceExpenses: [],
     });
+    addAdminNotification("إضافة معدة", `تمت إضافة معدة شركة جديدة: ${name}`);
     saveState();
     render();
   });
@@ -1284,6 +1335,7 @@ function renderEquipmentsSection(root) {
       details,
       createdAt: new Date().toISOString(),
     });
+    addAdminNotification("إضافة مصروف معدة", `تم تسجيل مصروف (${type}) على معدة: ${equipment.name}`);
     saveState();
     render();
   });
@@ -1467,6 +1519,7 @@ function renderSettingsSection(root) {
         permissionKey,
         permissions: getPermissionLabel(permissionKey),
       });
+      addAdminNotification("إضافة دور", `تم إضافة دور جديد: ${String(form.get("name") || "").trim()}`);
       saveState();
       render();
     });
@@ -1489,6 +1542,7 @@ function renderSettingsSection(root) {
         password: String(form.get("password") || "").trim(),
         roleId: String(form.get("roleId") || "") || null,
       });
+      addAdminNotification("إضافة مستخدم نظام", `تم إضافة مستخدم جديد: ${String(form.get("name") || "").trim()}`);
       saveState();
       render();
     });
@@ -1506,6 +1560,7 @@ function renderSettingsSection(root) {
         salary: Number(form.get("salary") || 0),
         startDate: String(form.get("startDate") || ""),
       });
+      addAdminNotification("إضافة موظف عمل", `تم إضافة موظف عمل: ${String(form.get("name") || "").trim()}`);
       saveState();
       render();
     });
@@ -1566,6 +1621,7 @@ function renderSettingsSection(root) {
       const worker = state.workers.find((w) => w.id === workerId);
       if (!worker || salary < 0) return;
       worker.salary = salary;
+      addAdminNotification("تعديل مرتب", `تم تعديل مرتب الموظف: ${worker.name}`);
       saveState();
       render();
     });
@@ -1821,6 +1877,7 @@ function bindProjectCreateForm() {
       subcontractors: [],
       companyEquipments: [],
     });
+    addAdminNotification("إضافة مشروع", `تمت إضافة مشروع جديد: ${name}`);
 
     projectDraft = getEmptyProjectDraft();
     ui.showProjectForm = false;
@@ -2019,6 +2076,7 @@ function bindSubcontractForm(project) {
       unitPrice,
       total: qty * unitPrice,
     });
+    addAdminNotification("إضافة مقاول باطن", `تمت إضافة مقاول باطن (${contractorName}) في مشروع ${project.name}`);
 
     saveState();
     render();
@@ -2046,6 +2104,7 @@ function bindPettyForm(project) {
       amount,
       note,
     });
+    addAdminNotification("إضافة مصروف نثري", `تمت إضافة مصروف نثري في مشروع ${project.name}`);
 
     saveState();
     render();
@@ -2093,6 +2152,7 @@ function bindOperationForm(project) {
       total: qty * unitPrice + otherCosts,
       note,
     });
+    addAdminNotification("إضافة مصروف تشغيل", `تمت إضافة مصروف تشغيل في مشروع ${project.name}`);
 
     saveState();
     render();
@@ -2144,6 +2204,7 @@ function bindRentalForms(project) {
         price,
         referenceDate: referenceDateValue,
       });
+      addAdminNotification("إضافة إيجار معدة", `تمت إضافة إيجار معدة في مشروع ${project.name}`);
 
       saveState();
       render();
@@ -2172,6 +2233,7 @@ function bindRentalForms(project) {
         details,
         amount,
       });
+      addAdminNotification("إضافة عطل معدة", `تمت إضافة عطل معدة في مشروع ${project.name}`);
 
       saveState();
       render();
@@ -2198,6 +2260,7 @@ function bindRentalForms(project) {
         durationValue: durationValueNum,
         amount,
       });
+      addAdminNotification("إضافة وقت إضافي", `تمت إضافة وقت إضافي لمعدة في مشروع ${project.name}`);
 
       saveState();
       render();
@@ -2225,6 +2288,7 @@ function bindSalaryForm(project) {
       reason,
       note,
     });
+    addAdminNotification("إضافة خصم موظف", `تمت إضافة خصم في مشروع ${project.name}`);
 
     saveState();
     render();
@@ -2260,6 +2324,7 @@ function bindProjectEquipmentsForm(project) {
       note,
       createdAt: new Date().toISOString(),
     });
+    addAdminNotification("إضافة مصروف معدة داخل مشروع", `تمت إضافة مصروف معدة داخل مشروع ${project.name}`);
 
     saveState();
     render();
@@ -2668,6 +2733,55 @@ function showAppPopup(message) {
   popup.addEventListener("click", (e) => {
     if (e.target === popup) close();
   });
+}
+
+function notificationsModalTemplate() {
+  const rows = state.notifications
+    .slice(0, 80)
+    .map(
+      (n) => `
+      <article class="summary-card" style="margin-bottom:8px">
+        <h4>${escapeHtml(n.title)}</h4>
+        <p style="font-size:0.95rem;color:#445d75;font-weight:500">${escapeHtml(n.description)}</p>
+        <small class="muted">${escapeHtml(new Date(n.createdAt).toLocaleString("en-US"))}</small>
+      </article>
+    `,
+    )
+    .join("");
+
+  return `
+    <div class="modal-backdrop hidden" id="notifications-modal">
+      <div class="modal">
+        <div class="row">
+          <h3 class="card-title">الإشعارات</h3>
+          <button class="btn btn-secondary" type="button" id="close-notifications">إغلاق</button>
+        </div>
+        ${rows || '<div class="empty">لا توجد إشعارات حالياً</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function isAdminUser(user) {
+  if (!user) return false;
+  const role = state.roles.find((r) => r.id === user.roleId);
+  if (role && role.permissionKey === "all") return true;
+  if (!user.roleId && user.id === state.systemUsers[0]?.id) return true;
+  return false;
+}
+
+function addAdminNotification(title, description) {
+  const actor = state.systemUsers.find((u) => u.id === state.session.userId);
+  if (isAdminUser(actor)) return;
+  const actorName = actor?.name ? `بواسطة ${actor.name}` : "بواسطة مستخدم";
+  state.notifications.unshift({
+    id: crypto.randomUUID(),
+    title,
+    description: `${description} - ${actorName}`,
+    createdAt: new Date().toISOString(),
+    read: false,
+  });
+  state.notifications = state.notifications.slice(0, 200);
 }
 
 function projectCreateFormTemplate(inModal = false) {

@@ -143,7 +143,6 @@ textarea {
 .btn-primary {
   background: linear-gradient(145deg, var(--primary), var(--primary-2));
   color: #fff;
-  box-shadow: 0 8px 18px rgba(15, 77, 138, 0.25);
 }
 
 .auth-card .btn-primary {
@@ -198,6 +197,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-shadow: var(--shadow);
 }
 
 .sidebar-logo {
@@ -225,7 +225,6 @@ textarea {
   background: #ffffff;
   border-color: #d8e5f5;
   color: #0f4d8a;
-  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-footer {
@@ -241,7 +240,6 @@ textarea {
   backdrop-filter: blur(6px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
   padding: 14px 16px;
   margin-bottom: 14px;
   display: flex;
@@ -256,11 +254,29 @@ textarea {
   padding: 8px 12px;
 }
 
+.notif-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notif-btn b {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e33b3b;
+  color: #fff;
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
 .section-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
   padding: 16px;
   margin-bottom: 14px;
 }
@@ -276,6 +292,10 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.row .btn {
+  margin-inline-start: 4px;
 }
 
 .grid-2 {
@@ -305,12 +325,11 @@ textarea {
   display: grid;
   gap: 8px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .project-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
 }
 
 .project-card.done {
@@ -523,7 +542,6 @@ th {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: var(--shadow);
   padding: 14px;
 }
 
@@ -650,5 +668,21 @@ th {
 
   .progress-wrap {
     min-width: 120px;
+  }
+
+  .execution-table-wrap {
+    overflow-x: auto;
+  }
+
+  .execution-table {
+    min-width: 980px !important;
+    table-layout: auto !important;
+  }
+
+  .execution-table th,
+  .execution-table td {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
   }
 }
