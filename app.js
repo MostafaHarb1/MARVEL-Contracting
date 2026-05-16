@@ -75,6 +75,8 @@ let ui = {
   accountsUnlocked: false,
   moneyVisible: true,
   showProjectForm: false,
+  openProjectMenuId: null,
+  pendingProjectBoqModalProjectId: null,
 };
 
 let projectDraft = getEmptyProjectDraft();
@@ -318,24 +320,38 @@ function renderProjectsSection(root) {
     const cards = state.projects
       .map((project) => {
         const progress = getProjectCompletion(project);
-        const status = progress >= 100 ? "مكتمل" : "جاري";
+        const status = progress >= 100 ? "مكتمل" : "قيد التنفيذ";
         const qtyStats = getSubcontractQtyStats(project);
-        const totalQty = project.boq.reduce((sum, item) => sum + Number(item.qty || 0), 0);
-        const totalValue = project.boq.reduce((sum, item) => sum + Number(item.total || 0), 0);
+        const qtyWithUnit = getProjectTotalQtyWithUnit(project);
         return `
           <article class="project-card ${progress >= 100 ? "done" : ""}" data-open-project="${project.id}">
             <div class="project-card-head">
               <div class="project-card-title-wrap">
                 <strong class="project-card-title">${escapeHtml(project.name)}</strong>
-                <span class="project-card-date">البداية: ${escapeHtml(project.startDate || "-")}</span>
+                <span class="project-card-date">${escapeHtml(project.startDate || "-")}</span>
               </div>
-              <span class="badge ${progress >= 100 ? "done" : "running"}">${status}</span>
+              <div class="project-card-actions">
+                <span class="badge ${progress >= 100 ? "done" : "running"}">${status}</span>
+                <div class="project-card-menu">
+                  <button type="button" class="project-menu-trigger" data-project-menu-toggle="${project.id}" aria-label="خيارات المشروع">${outlineMoreIcon()}</button>
+                  <div class="project-menu-dropdown ${ui.openProjectMenuId === project.id ? "open" : ""}">
+                    <button type="button" data-project-menu-action="addBoq" data-project-id="${project.id}">إضافة مقايسة</button>
+                    <button type="button" data-project-menu-action="delete" data-project-id="${project.id}" class="danger">حذف المشروع</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="project-meta project-meta-grid">
-              <span>عدد البنود: ${project.boq.length}</span>
-              <span>إجمالي الكمية: ${num(totalQty)}</span>
-              <span>قيمة البنود: ${showMoney(totalValue)}</span>
-              <span>تشغيل ذاتي: ${qtyStats.selfPercent.toFixed(1)}% | باطن: ${qtyStats.subcontractPercent.toFixed(1)}%</span>
+              <span>${infoIcon("calendar")} تاريخ البداية: ${escapeHtml(project.startDate || "-")}</span>
+              <span>${infoIcon("items")} عدد البنود: ${project.boq.length}</span>
+              <span>${infoIcon("qty")} إجمالي الكمية: ${qtyWithUnit}</span>
+            </div>
+            <div class="split-progress">
+              <div class="split-row"><span>تنفيذ ذاتي ${qtyStats.selfPercent.toFixed(1)}%</span><span>مقاولي باطن ${qtyStats.subcontractPercent.toFixed(1)}%</span></div>
+              <div class="split-bars">
+                <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
+                <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
+              </div>
             </div>
             <div class="project-card-progress">
               ${progressBar(progress)}
@@ -365,6 +381,7 @@ function renderProjectsSection(root) {
 
     document.querySelectorAll("[data-open-project]").forEach((card) => {
       card.addEventListener("click", () => {
+        if (ui.openProjectMenuId) ui.openProjectMenuId = null;
         ui.selectedProjectId = card.dataset.openProject;
         ui.mobileMenuOpen = false;
         ui.projectTab = "boq";
@@ -372,6 +389,43 @@ function renderProjectsSection(root) {
         ui.rentalSubtab = "rent";
         ui.salarySubtab = "salaries";
         render();
+      });
+    });
+
+    document.querySelectorAll(".project-card-menu").forEach((menu) => {
+      menu.addEventListener("click", (e) => e.stopPropagation());
+    });
+
+    document.querySelectorAll("[data-project-menu-toggle]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.projectMenuToggle;
+        ui.openProjectMenuId = ui.openProjectMenuId === id ? null : id;
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-project-menu-action]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.projectMenuAction;
+        const projectId = btn.dataset.projectId;
+        const project = state.projects.find((p) => p.id === projectId);
+        if (!project) return;
+        ui.openProjectMenuId = null;
+        if (action === "delete") {
+          if (!confirm("هل أنت متأكد من حذف المشروع؟")) return;
+          state.projects = state.projects.filter((p) => p.id !== projectId);
+          saveState();
+          render();
+          return;
+        }
+        if (action === "addBoq") {
+          ui.selectedProjectId = projectId;
+          ui.projectTab = "boq";
+          ui.pendingProjectBoqModalProjectId = projectId;
+          render();
+        }
       });
     });
 
@@ -430,6 +484,10 @@ function renderProjectsSection(root) {
     ${renderProjectTabContent(project, summary)}
   `;
 
+  if (ui.pendingProjectBoqModalProjectId === project.id) {
+    ui.pendingProjectBoqModalProjectId = null;
+  }
+
   document.getElementById("back-project-list").addEventListener("click", () => {
     ui.selectedProjectId = null;
     ui.mobileMenuOpen = false;
@@ -478,7 +536,7 @@ function renderProjectTabContent(project, summary) {
           <h3 class="card-title">المقايسات</h3>
           <button class="btn btn-primary" type="button" data-open-modal="project-boq-modal">إضافة مقايسة</button>
         </div>
-        <div class="modal-backdrop hidden" id="project-boq-modal">
+        <div class="modal-backdrop ${ui.pendingProjectBoqModalProjectId === project.id ? "" : "hidden"}" id="project-boq-modal">
           <div class="modal">
             <div class="row">
               <h3 class="card-title">إضافة مقايسة</h3>
@@ -2976,6 +3034,27 @@ function outlineBellIcon() {
 
 function outlineBackArrowIcon() {
   return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6L4 12l6 6"/><path d="M5 12h15"/></svg>`;
+}
+
+function outlineMoreIcon() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>`;
+}
+
+function infoIcon(type) {
+  if (type === "calendar") {
+    return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>`;
+  }
+  if (type === "items") {
+    return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>`;
+}
+
+function getProjectTotalQtyWithUnit(project) {
+  const totalQty = project.boq.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+  const units = [...new Set(project.boq.map((item) => String(item.unit || "").trim()).filter(Boolean))];
+  const unitLabel = units.length === 1 ? units[0] : units.length > 1 ? "وحدات متنوعة" : "وحدة";
+  return `${num(totalQty)} ${unitLabel}`;
 }
 
 function sidebarButton(id, title) {

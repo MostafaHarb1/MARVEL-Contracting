@@ -414,6 +414,12 @@ textarea {
   gap: 10px;
 }
 
+.project-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .project-card-title-wrap {
   display: grid;
   gap: 4px;
@@ -432,16 +438,119 @@ textarea {
 }
 
 .project-meta-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px 12px;
 }
 
-.project-meta-grid span:last-child {
-  grid-column: 1 / -1;
+.project-meta-grid span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-meta-grid span svg {
+  color: #4e6f91;
+  flex: 0 0 auto;
 }
 
 .project-card-progress {
   margin-top: 2px;
+}
+
+.split-progress {
+  display: grid;
+  gap: 8px;
+}
+
+.split-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #4f6177;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.split-bars {
+  display: grid;
+  gap: 6px;
+}
+
+.split-bar-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: #e6eef7;
+  overflow: hidden;
+}
+
+.split-bar-self,
+.split-bar-sub {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.split-bar-self {
+  background: linear-gradient(90deg, #1d6fc0, #0f4d8a);
+}
+
+.split-bar-sub {
+  background: linear-gradient(90deg, #5f85af, #3c628b);
+}
+
+.project-card-menu {
+  position: relative;
+}
+
+.project-menu-trigger {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #335778;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.project-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 150px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  display: none;
+  z-index: 5;
+}
+
+.project-menu-dropdown.open {
+  display: grid;
+  gap: 4px;
+}
+
+.project-menu-dropdown button {
+  border: 0;
+  background: transparent;
+  text-align: right;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #23384f;
+  font-size: 0.9rem;
+}
+
+.project-menu-dropdown button:hover {
+  background: #f2f7fd;
+}
+
+.project-menu-dropdown button.danger {
+  color: var(--danger);
 }
 
 .badge {
