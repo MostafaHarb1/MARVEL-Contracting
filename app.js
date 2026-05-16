@@ -402,11 +402,11 @@ function renderProjectsSection(root) {
   root.innerHTML = `
     <section class="section-card project-header-card">
       <div class="row project-header-row">
-        <h3 class="card-title">${escapeHtml(project.name)}</h3>
-        <div class="row project-header-actions">
-          <button class="btn btn-secondary" id="back-project-list">العودة لقائمة المشاريع</button>
-          <button class="btn btn-danger" id="delete-project-inside">حذف المشروع</button>
+        <div class="project-header-nav">
+          <button class="btn btn-secondary icon-action-btn project-back-btn" id="back-project-list" title="العودة لقائمة المشاريع" aria-label="العودة لقائمة المشاريع">${outlineBackArrowIcon()}</button>
+          <h3 class="card-title project-header-title">${escapeHtml(project.name)}</h3>
         </div>
+        <button class="btn btn-danger project-delete-btn" id="delete-project-inside">حذف المشروع</button>
       </div>
     </section>
 
@@ -466,6 +466,9 @@ function renderProjectTabContent(project) {
           <tr>
             <td>${escapeHtml(item.itemName)}</td>
             <td>${num(item.qty)}</td>
+            <td>${escapeHtml(item.unit || "-")}</td>
+            <td>${formatMoney(item.unitPrice)}</td>
+            <td>${formatMoney(item.total)}</td>
             <td>${progressBar(progress)}</td>
           </tr>
         `;
@@ -474,12 +477,33 @@ function renderProjectTabContent(project) {
 
     return `
       <section class="section-card">
-        <h3 class="card-title">المقايسات</h3>
+        <div class="row">
+          <h3 class="card-title">المقايسات</h3>
+          <button class="btn btn-primary" type="button" data-open-modal="project-boq-modal">إضافة مقايسة</button>
+        </div>
+        <div class="modal-backdrop hidden" id="project-boq-modal">
+          <div class="modal">
+            <div class="row">
+              <h3 class="card-title">إضافة مقايسة</h3>
+              <button class="btn btn-secondary" type="button" data-close-modal="project-boq-modal">إغلاق</button>
+            </div>
+            <form id="add-project-boq-form" class="form-grid">
+              <div class="grid-3">
+                <div class="field"><label>اسم البند</label><input class="input" name="itemName" required /></div>
+                <div class="field"><label>الكمية</label><input class="input" type="number" min="0" step="0.01" name="qty" required /></div>
+                <div class="field"><label>الوحدة</label><select class="select" name="unit" required>${unitOptionsHtml()}</select></div>
+                <div class="field"><label>سعر الوحدة</label><input class="input money-input" type="text" inputmode="decimal" name="unitPrice" required /></div>
+                <div class="field"><label>الإجمالي</label><input class="input" id="project-boq-total-preview" readonly value="0" /></div>
+              </div>
+              <button class="btn btn-primary" type="submit">إضافة</button>
+            </form>
+          </div>
+        </div>
         ${project.boq.length ? `
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>اسم البند</th><th>الكمية الإجمالية</th><th>نسبة الإكمال</th></tr>
+                <tr><th>اسم البند</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>نسبة الإكمال</th></tr>
               </thead>
               <tbody>${rows}</tbody>
             </table>
@@ -535,7 +559,7 @@ function renderProjectTabContent(project) {
             <div class="field"><label>اسم المقاول</label><input class="input" name="contractorName" required /></div>
             <div class="field"><label>الكمية</label><input class="input" type="number" step="0.01" min="0" name="qty" required /></div>
             <div class="field"><label>الوحدة</label><select class="select" name="unit" required>${unitOptionsHtml()}</select></div>
-            <div class="field"><label>سعر الوحدة</label><input class="input" type="number" step="0.01" min="0" name="unitPrice" required /></div>
+            <div class="field"><label>سعر الوحدة</label><input class="input money-input" type="text" inputmode="decimal" name="unitPrice" required /></div>
             <div class="field"><label>الإجمالي</label><input class="input" id="subcontract-total" readonly value="0" /></div>
           </div>
           <p class="muted" id="subcontract-remaining-hint"></p>
@@ -582,7 +606,7 @@ function renderProjectTabContent(project) {
               <option value="">اختر المعدة</option>
               ${state.companyEquipments.map((eq) => `<option value="${eq.id}">${escapeHtml(eq.name)}</option>`).join("")}
             </select></div>
-            <div class="field"><label>مصروف المعدة</label><input class="input" type="number" step="0.01" min="0" name="amount" required /></div>
+            <div class="field"><label>مصروف المعدة</label><input class="input money-input" type="text" inputmode="decimal" name="amount" required /></div>
             <div class="field"><label>ملاحظة</label><input class="input" name="note" /></div>
           </div>
           <button class="btn btn-primary" type="submit">إضافة للمشروع</button>
@@ -600,6 +624,14 @@ function renderProjectTabContent(project) {
 }
 
 function renderExpensesTab(project) {
+  const pettyTotal = project.expenses.petty.reduce((sum, x) => sum + Number(x.amount || 0), 0);
+  const operationTotal = project.expenses.operation.reduce((sum, x) => sum + Number(x.total || 0), 0);
+  const rentalTotal = project.expenses.rental.items.reduce(
+    (sum, item) => sum + getRentalNet(item, project.expenses.rental.faults, project.expenses.rental.extras).net,
+    0,
+  );
+  const expensesTotal = pettyTotal + operationTotal + rentalTotal;
+
   return `
     <section class="section-card">
       <div class="tabs" id="expenses-tabs">
@@ -607,6 +639,15 @@ function renderExpensesTab(project) {
         ${tabButton("operation", "مصاريف التشغيل", ui.expenseTab)}
         ${tabButton("rental", "إيجار المعدات", ui.expenseTab)}
         ${tabButton("salary", "المرتبات", ui.expenseTab)}
+      </div>
+    </section>
+    <section class="section-card">
+      <h3 class="card-title">ملخص المصروفات (بدون المرتبات)</h3>
+      <div class="summary-cards">
+        <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(expensesTotal)}</p></article>
+        <article class="summary-card"><h4>إجمالي مصاريف التشغيل</h4><p>${formatMoney(operationTotal)}</p></article>
+        <article class="summary-card"><h4>إجمالي المصروفات النثرية</h4><p>${formatMoney(pettyTotal)}</p></article>
+        <article class="summary-card"><h4>إجمالي إيجار المعدات</h4><p>${formatMoney(rentalTotal)}</p></article>
       </div>
     </section>
     ${ui.expenseTab === "petty" ? pettyExpensesTemplate(project) : ""}
@@ -647,7 +688,7 @@ function pettyExpensesTemplate(project) {
         <div class="grid-3">
           <div class="field"><label>اسم المصروف</label><input class="input" name="name" required /></div>
           <div class="field"><label>السبب</label><input class="input" name="reason" required /></div>
-          <div class="field"><label>المبلغ</label><input class="input" name="amount" type="number" min="0" step="0.01" required /></div>
+          <div class="field"><label>المبلغ</label><input class="input money-input" name="amount" type="text" inputmode="decimal" required /></div>
           <div class="field" style="grid-column:1/-1"><label>ملاحظة</label><input class="input" name="note" /></div>
         </div>
         <button class="btn btn-primary" type="submit">إضافة</button>
@@ -694,8 +735,8 @@ function operationExpensesTemplate(project) {
           <div class="field"><label>اسم المصروف</label><input class="input" name="name" required /></div>
           <div class="field"><label>الوحدة</label><select class="select" name="unit" required>${unitOptionsHtml()}</select></div>
           <div class="field"><label>الكمية</label><input class="input" name="qty" type="number" min="0" step="0.01" required /></div>
-          <div class="field"><label>سعر الوحدة</label><input class="input" name="unitPrice" type="number" min="0" step="0.01" required /></div>
-          <div class="field"><label>مصاريف أخرى</label><input class="input" name="otherCosts" type="number" min="0" step="0.01" value="0" /></div>
+          <div class="field"><label>سعر الوحدة</label><input class="input money-input" name="unitPrice" type="text" inputmode="decimal" required /></div>
+          <div class="field"><label>مصاريف أخرى (اختياري)</label><input class="input money-input" name="otherCosts" type="text" inputmode="decimal" value="0" /></div>
           <div class="field"><label>الإجمالي</label><input class="input" id="operation-total" readonly value="0" /></div>
           <div class="field" style="grid-column:1/-1"><label>ملاحظة</label><input class="input" name="note" /></div>
         </div>
@@ -716,7 +757,6 @@ function rentalExpensesTemplate(project) {
         <tr>
           <td>${escapeHtml(item.equipmentName)}</td>
           <td>${escapeHtml(item.durationType)}</td>
-          <td>${num(item.durationValue)}</td>
           <td>${num(item.count)}</td>
           <td>${formatMoney(item.price)}</td>
           <td>${formatMoney(totals.base)}</td>
@@ -736,7 +776,6 @@ function rentalExpensesTemplate(project) {
         <tr>
           <td>${escapeHtml(target?.equipmentName || "-")}</td>
           <td>${escapeHtml(fault.durationType)}</td>
-          <td>${num(fault.durationValue)}</td>
           <td>${escapeHtml(fault.details || "-")}</td>
           <td>${formatMoney(fault.amount)}</td>
           <td><button class="btn btn-danger" data-delete-rental-fault="${fault.id}">حذف</button></td>
@@ -752,7 +791,6 @@ function rentalExpensesTemplate(project) {
       <tr>
         <td>${escapeHtml(target?.equipmentName || "-")}</td>
         <td>${escapeHtml(extra.durationType)}</td>
-        <td>${num(extra.durationValue)}</td>
         <td>${formatMoney(extra.amount)}</td>
         <td><button class="btn btn-danger" data-delete-rental-extra="${extra.id}">حذف</button></td>
       </tr>
@@ -791,9 +829,8 @@ function rentalExpensesTemplate(project) {
                 <option value="شهر">شهر</option>
               </select>
             </div>
-            <div class="field"><label>قيمة المدة</label><input class="input" type="number" min="0" step="0.01" name="durationValue" required /></div>
             <div class="field"><label>العدد</label><input class="input" type="number" min="1" step="1" value="1" name="count" required /></div>
-            <div class="field"><label>السعر</label><input class="input" type="number" min="0" step="0.01" name="price" required /></div>
+            <div class="field"><label>السعر</label><input class="input money-input" type="text" inputmode="decimal" name="price" required /></div>
             <div class="field"><label>تاريخ مرجعي للشهر</label><input class="input" type="date" name="referenceDate" required /></div>
             <div class="field"><label>الإجمالي</label><input class="input" id="rental-item-total" readonly value="0" /></div>
           </div>
@@ -801,7 +838,7 @@ function rentalExpensesTemplate(project) {
         </form>
           </div>
         </div>
-        ${project.expenses.rental.items.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>المدة</th><th>القيمة</th><th>العدد</th><th>السعر</th><th>الأساسي</th><th>خصومات الأعطال</th><th>الإضافي</th><th>الصافي</th><th>إجراء</th></tr></thead><tbody>${rentalRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد معدات إيجار</div>'}
+        ${project.expenses.rental.items.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>المدة</th><th>العدد</th><th>السعر</th><th>الأساسي</th><th>خصومات الأعطال</th><th>الإضافي</th><th>الصافي</th><th>إجراء</th></tr></thead><tbody>${rentalRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد معدات إيجار</div>'}
       </section>
     ` : ""}
 
@@ -823,14 +860,13 @@ function rentalExpensesTemplate(project) {
               ${project.expenses.rental.items.map((i) => `<option value="${i.id}">${escapeHtml(i.equipmentName)}</option>`).join("")}
             </select></div>
             <div class="field"><label>نوع المدة</label><select class="select" name="durationType"><option value="ساعة">ساعة</option><option value="يوم">يوم</option><option value="شهر">شهر</option></select></div>
-            <div class="field"><label>قيمة المدة</label><input class="input" type="number" min="0" step="0.01" name="durationValue" required /></div>
             <div class="field" style="grid-column:1/-1"><label>التفاصيل</label><input class="input" name="details" /></div>
           </div>
           <button class="btn btn-primary" type="submit" ${project.expenses.rental.items.length ? "" : "disabled"}>إضافة</button>
         </form>
           </div>
         </div>
-        ${project.expenses.rental.faults.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>نوع المدة</th><th>قيمة المدة</th><th>التفاصيل</th><th>الخصم</th><th>إجراء</th></tr></thead><tbody>${faultsRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد أعطال مسجلة</div>'}
+        ${project.expenses.rental.faults.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>نوع المدة</th><th>التفاصيل</th><th>الخصم</th><th>إجراء</th></tr></thead><tbody>${faultsRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد أعطال مسجلة</div>'}
       </section>
     ` : ""}
 
@@ -852,13 +888,12 @@ function rentalExpensesTemplate(project) {
               ${project.expenses.rental.items.map((i) => `<option value="${i.id}">${escapeHtml(i.equipmentName)}</option>`).join("")}
             </select></div>
             <div class="field"><label>نوع المدة الإضافية</label><select class="select" name="durationType"><option value="ساعة">ساعة</option><option value="يوم">يوم</option><option value="شهر">شهر</option></select></div>
-            <div class="field"><label>قيمة المدة</label><input class="input" type="number" min="0" step="0.01" name="durationValue" required /></div>
           </div>
           <button class="btn btn-primary" type="submit" ${project.expenses.rental.items.length ? "" : "disabled"}>إضافة</button>
         </form>
           </div>
         </div>
-        ${project.expenses.rental.extras.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>نوع المدة</th><th>القيمة</th><th>الإضافة</th><th>إجراء</th></tr></thead><tbody>${extrasRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد إضافيات</div>'}
+        ${project.expenses.rental.extras.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المعدة</th><th>نوع المدة</th><th>الإضافة</th><th>إجراء</th></tr></thead><tbody>${extrasRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد إضافيات</div>'}
       </section>
     ` : ""}
   `;
@@ -866,8 +901,9 @@ function rentalExpensesTemplate(project) {
 
 function salaryTemplate(project) {
   const totalSalaries = state.workers.reduce((sum, w) => sum + Number(w.salary || 0), 0);
-  const totalDeductions = project.expenses.salary.deductions.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-  const netPaid = Math.max(totalSalaries - totalDeductions, 0);
+  const deductionsByWorker = getDeductionsByWorker(project);
+  const totalDeductions = Object.values(deductionsByWorker).reduce((sum, value) => sum + value, 0);
+  const totalPaidFromCash = Math.max(totalSalaries - totalDeductions, 0);
 
   const deductionsRows = project.expenses.salary.deductions
     .map(
@@ -885,13 +921,18 @@ function salaryTemplate(project) {
 
   const workersRows = state.workers
     .map(
-      (w) => `
+      (w) => {
+      const deduction = Number(deductionsByWorker[w.id] || 0);
+      const paid = Math.max(Number(w.salary || 0) - deduction, 0);
+      return `
       <tr>
         <td>${escapeHtml(w.name)}</td>
         <td>${escapeHtml(w.jobTitle)}</td>
-        <td>${formatMoney(w.salary)}</td>
+        <td>${formatMoney(w.salary)}${deduction > 0 ? ` <span class="muted">(-${formatMoneyRaw(deduction)})</span>` : ""}</td>
+        <td>${formatMoney(deduction)}</td>
+        <td>${formatMoney(paid)}</td>
       </tr>
-    `,
+    `},
     )
     .join("");
 
@@ -906,11 +947,11 @@ function salaryTemplate(project) {
     ${ui.salarySubtab === "salaries" ? `
       <section class="section-card">
         <h3 class="card-title">المرتبات</h3>
-        ${state.workers.length ? `<div class="table-wrap"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>المرتب</th></tr></thead><tbody>${workersRows}</tbody></table></div>` : '<div class="empty">لا يوجد موظفون في الإعدادات</div>'}
+        ${state.workers.length ? `<div class="table-wrap"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>المرتب</th><th>الخصم</th><th>المدفوع من النقدية</th></tr></thead><tbody>${workersRows}</tbody></table></div>` : '<div class="empty">لا يوجد موظفون في الإعدادات</div>'}
         <div class="summary-cards" style="margin-top:12px">
           <article class="summary-card"><h4>إجمالي المرتبات</h4><p>${formatMoney(totalSalaries)}</p></article>
           <article class="summary-card"><h4>الخصومات</h4><p>${formatMoney(totalDeductions)}</p></article>
-          <article class="summary-card"><h4>صافي المدفوع</h4><p>${formatMoney(netPaid)}</p></article>
+          <article class="summary-card"><h4>إجمالي المدفوع من النقدية</h4><p>${formatMoney(totalPaidFromCash)}</p></article>
         </div>
       </section>
     ` : ""}
@@ -932,7 +973,7 @@ function salaryTemplate(project) {
             <div class="field"><label>اسم الموظف</label><select class="select" name="workerId" required>${state.workers
               .map((w) => `<option value="${w.id}">${escapeHtml(w.name)}</option>`)
               .join("")}</select></div>
-            <div class="field"><label>المبلغ</label><input class="input" type="number" min="0" step="0.01" name="amount" required /></div>
+            <div class="field"><label>المبلغ</label><input class="input money-input" type="text" inputmode="decimal" name="amount" required /></div>
             <div class="field"><label>السبب</label><input class="input" name="reason" required /></div>
             <div class="field" style="grid-column:1/-1"><label>ملاحظة</label><input class="input" name="note" /></div>
           </div>
@@ -982,30 +1023,16 @@ function renderExecutionSection(root) {
     })
     .join("");
 
-  const executionRows = state.executionLogs
-    .slice()
-    .reverse()
-    .slice(0, 40)
-    .map((log) => {
-      const project = state.projects.find((p) => p.id === log.projectId);
-      const boq = project?.boq.find((b) => b.id === log.boqId);
-      return `
-      <tr>
-        <td>${escapeHtml(project?.name || "-")}</td>
-        <td>${escapeHtml(boq?.itemName || "-")}</td>
-        <td>${escapeHtml(log.performerLabel || "-")}</td>
-        <td>${num(log.executedQty)}</td>
-        <td>${escapeHtml(new Date(log.createdAt).toLocaleString("en-US"))}</td>
-      </tr>
-      `;
-    })
-    .join("");
-
   root.innerHTML = `
     <section class="section-card">
-      <div class="row">
-        <h3 class="card-title">إضافة تنفيذ</h3>
-        <button class="btn btn-primary" id="open-execution-modal">إضافة تنفيذ</button>
+      <div class="row section-tools-row">
+        <h3 class="card-title">التنفيذ</h3>
+        <div class="row section-tools-controls">
+          <div class="tabs section-tools-tabs" id="execution-tabs">
+            ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
+          </div>
+          <button class="btn btn-primary" id="open-execution-modal">إضافة تنفيذ</button>
+        </div>
       </div>
       <div class="modal-backdrop hidden" id="execution-modal-backdrop">
         <div class="modal">
@@ -1028,26 +1055,12 @@ function renderExecutionSection(root) {
       </div>
     </section>
 
-    <section class="section-card">
-      <div class="tabs" id="execution-tabs">
-        ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
-        ${tabButton("logs", "سجل التنفيذ", ui.executionTab)}
-      </div>
-    </section>
-
     ${ui.executionTab === "allItems" ? `
       <section class="section-card">
-        <h3 class="card-title">كل البنود من جميع المشاريع</h3>
         ${flatBoq.length ? `<div class="table-wrap execution-table-wrap"><div class="execution-scroll-inner"><table class="execution-table"><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
       </section>
     ` : ""}
 
-    ${ui.executionTab === "logs" ? `
-      <section class="section-card">
-        <h3 class="card-title">سجل التنفيذ</h3>
-        ${state.executionLogs.length ? `<div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقايسة</th><th>المنفذ</th><th>الكمية</th><th>الوقت</th></tr></thead><tbody>${executionRows}</tbody></table></div>` : '<div class="empty">لا توجد عمليات تنفيذ بعد</div>'}
-      </section>
-    ` : ""}
   `;
 
   document.querySelectorAll("#execution-tabs .tab-btn").forEach((btn) => {
@@ -1223,62 +1236,61 @@ function renderEquipmentsSection(root) {
     })
     .join("");
 
+  const equipmentsModalId = ui.equipmentsTab === "equipments"
+    ? "add-company-equipment-modal"
+    : "add-company-equipment-expense-modal";
+  const equipmentsAddLabel = ui.equipmentsTab === "equipments" ? "إضافة معدة" : "إضافة مصروف معدة";
+
   root.innerHTML = `
     <section class="section-card">
-      <div class="tabs" id="equipments-tabs">
-        ${tabButton("equipments", "معدات الشركة", ui.equipmentsTab)}
-        ${tabButton("expenses", "مصاريف معدات الشركة", ui.equipmentsTab)}
+      <div class="row section-tools-row">
+        <h3 class="card-title">معدات الشركة</h3>
+        <div class="row section-tools-controls">
+          <div class="tabs section-tools-tabs" id="equipments-tabs">
+            ${tabButton("equipments", "المعدات", ui.equipmentsTab)}
+            ${tabButton("expenses", "المصاريف", ui.equipmentsTab)}
+          </div>
+          <button class="btn btn-primary" type="button" data-open-modal="${equipmentsModalId}">${equipmentsAddLabel}</button>
+        </div>
       </div>
     </section>
 
     ${ui.equipmentsTab === "equipments" ? `
-    <section class="section-card">
-      <div class="row">
-        <h3 class="card-title">معدات الشركة</h3>
-        <button class="btn btn-primary" type="button" data-open-modal="add-company-equipment-modal">إضافة معدة</button>
-      </div>
       <div class="modal-backdrop hidden" id="add-company-equipment-modal">
         <div class="modal">
           <div class="row">
             <h3 class="card-title">إضافة معدة</h3>
             <button class="btn btn-secondary" type="button" data-close-modal="add-company-equipment-modal">إغلاق</button>
           </div>
-      <form id="add-company-equipment-form" class="form-grid">
-        <div class="grid-2">
-          <div class="field"><label>اسم المعدة</label><input class="input" name="name" required /></div>
-          <div class="field"><label>تاريخ الشراء</label><input class="input" name="purchaseDate" type="date" required /></div>
-        </div>
-        <button class="btn btn-primary" type="submit">إضافة</button>
-      </form>
+          <form id="add-company-equipment-form" class="form-grid">
+            <div class="grid-2">
+              <div class="field"><label>اسم المعدة</label><input class="input" name="name" required /></div>
+              <div class="field"><label>تاريخ الشراء</label><input class="input" name="purchaseDate" type="date" required /></div>
+            </div>
+            <button class="btn btn-primary" type="submit">إضافة</button>
+          </form>
         </div>
       </div>
-    </section>
     ` : ""}
 
     ${ui.equipmentsTab === "expenses" ? `
-    <section class="section-card">
-      <div class="row">
-        <h3 class="card-title">مصاريف معدات الشركة</h3>
-        <button class="btn btn-primary" type="button" data-open-modal="add-company-equipment-expense-modal">إضافة مصروف معدة</button>
-      </div>
       <div class="modal-backdrop hidden" id="add-company-equipment-expense-modal">
         <div class="modal">
           <div class="row">
             <h3 class="card-title">إضافة مصروف معدة</h3>
             <button class="btn btn-secondary" type="button" data-close-modal="add-company-equipment-expense-modal">إغلاق</button>
           </div>
-      <form id="add-company-equipment-expense-form" class="form-grid">
-        <div class="grid-3">
-          <div class="field"><label>المعدة</label><select class="select" name="equipmentId" required><option value="">اختر</option>${state.companyEquipments.map((eq) => `<option value="${eq.id}">${escapeHtml(eq.name)}</option>`).join("")}</select></div>
-          <div class="field"><label>النوع</label><select class="select" name="type" required><option value="صيانة">صيانة</option><option value="عطل">عطل</option></select></div>
-          <div class="field"><label>المبلغ</label><input class="input" type="number" min="0" step="0.01" name="amount" required /></div>
-          <div class="field" style="grid-column:1/-1"><label>تفاصيل</label><input class="input" name="details" /></div>
-        </div>
-        <button class="btn btn-primary" type="submit">تسجيل المصروف</button>
-      </form>
+          <form id="add-company-equipment-expense-form" class="form-grid">
+            <div class="grid-3">
+              <div class="field"><label>المعدة</label><select class="select" name="equipmentId" required><option value="">اختر</option>${state.companyEquipments.map((eq) => `<option value="${eq.id}">${escapeHtml(eq.name)}</option>`).join("")}</select></div>
+              <div class="field"><label>النوع</label><select class="select" name="type" required><option value="صيانة">صيانة</option><option value="عطل">عطل</option></select></div>
+              <div class="field"><label>المبلغ</label><input class="input money-input" type="text" inputmode="decimal" name="amount" required /></div>
+              <div class="field" style="grid-column:1/-1"><label>تفاصيل</label><input class="input" name="details" /></div>
+            </div>
+            <button class="btn btn-primary" type="submit">تسجيل المصروف</button>
+          </form>
         </div>
       </div>
-    </section>
     ` : ""}
 
     <section class="section-card">
@@ -1294,7 +1306,7 @@ function renderEquipmentsSection(root) {
     });
   });
 
-  document.getElementById("add-company-equipment-form").addEventListener("submit", (e) => {
+  document.getElementById("add-company-equipment-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") || "").trim();
@@ -1312,12 +1324,14 @@ function renderEquipmentsSection(root) {
     render();
   });
 
-  document.getElementById("add-company-equipment-expense-form").addEventListener("submit", (e) => {
+  const companyEquipmentExpenseForm = document.getElementById("add-company-equipment-expense-form");
+  applyMoneyFormattingTo(companyEquipmentExpenseForm);
+  companyEquipmentExpenseForm?.addEventListener("submit", (e) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const equipmentId = String(form.get("equipmentId") || "");
     const type = String(form.get("type") || "");
-    const amount = Number(form.get("amount") || 0);
+    const amount = parseMoneyValue(form.get("amount"));
     const details = String(form.get("details") || "").trim();
     const equipment = state.companyEquipments.find((eq) => eq.id === equipmentId);
     if (!equipment || amount <= 0) return;
@@ -1808,13 +1822,14 @@ function renderAccountsSection(root) {
 function bindProjectCreateForm() {
   const form = document.getElementById("create-project-form");
   if (!form) return;
+  applyMoneyFormattingTo(form);
 
   const boqQty = form.querySelector("[name='boqQty']");
   const boqUnitPrice = form.querySelector("[name='boqUnitPrice']");
   const boqTotal = document.getElementById("boq-total-preview");
 
   const updateBoqTotalPreview = () => {
-    boqTotal.value = String(Number(boqQty.value || 0) * Number(boqUnitPrice.value || 0));
+    boqTotal.value = String(Number(boqQty.value || 0) * parseMoneyValue(boqUnitPrice.value));
   };
 
   boqQty.addEventListener("input", updateBoqTotalPreview);
@@ -1830,7 +1845,7 @@ function bindProjectCreateForm() {
     const itemName = String(form.querySelector("[name='boqName']").value || "").trim();
     const qty = Number(form.querySelector("[name='boqQty']").value || 0);
     const unit = String(form.querySelector("[name='boqUnit']").value || "").trim();
-    const unitPrice = Number(form.querySelector("[name='boqUnitPrice']").value || 0);
+    const unitPrice = parseMoneyValue(form.querySelector("[name='boqUnitPrice']").value);
 
     if (!itemName || qty <= 0 || !unit || unitPrice < 0) {
       showAppPopup("الرجاء إدخال بيانات بند صحيحة");
@@ -1975,6 +1990,7 @@ function bindProjectDetailActions(project) {
   }
 
   bindSubcontractForm(project);
+  bindProjectBoqForm(project);
   bindPettyForm(project);
   bindOperationForm(project);
   bindRentalForms(project);
@@ -2059,9 +2075,56 @@ function bindProjectDetailActions(project) {
   });
 }
 
+function bindProjectBoqForm(project) {
+  const form = document.getElementById("add-project-boq-form");
+  if (!form) return;
+  applyMoneyFormattingTo(form);
+
+  const qtyInput = form.querySelector("[name='qty']");
+  const unitPriceInput = form.querySelector("[name='unitPrice']");
+  const totalInput = document.getElementById("project-boq-total-preview");
+
+  const refresh = () => {
+    totalInput.value = String(Number(qtyInput.value || 0) * parseMoneyValue(unitPriceInput.value));
+  };
+
+  qtyInput.addEventListener("input", refresh);
+  unitPriceInput.addEventListener("input", refresh);
+  refresh();
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const itemName = String(fd.get("itemName") || "").trim();
+    const qty = Number(fd.get("qty") || 0);
+    const unit = String(fd.get("unit") || "").trim();
+    const unitPrice = parseMoneyValue(fd.get("unitPrice"));
+
+    if (!itemName || qty <= 0 || !unit || unitPrice < 0) {
+      showAppPopup("الرجاء إدخال بيانات مقايسة صحيحة");
+      return;
+    }
+
+    project.boq.push({
+      id: crypto.randomUUID(),
+      itemName,
+      qty,
+      unit,
+      unitPrice,
+      total: qty * unitPrice,
+      executedQty: 0,
+    });
+    addAdminNotification("إضافة مقايسة", `تمت إضافة مقايسة جديدة في مشروع ${project.name}: ${itemName}`);
+
+    saveState();
+    render();
+  });
+}
+
 function bindSubcontractForm(project) {
   const form = document.getElementById("add-subcontract-form");
   if (!form) return;
+  applyMoneyFormattingTo(form);
 
   const boqSelect = form.querySelector("[name='boqId']");
   const qtyInput = form.querySelector("[name='qty']");
@@ -2070,7 +2133,7 @@ function bindSubcontractForm(project) {
   const hint = document.getElementById("subcontract-remaining-hint");
 
   const refresh = () => {
-    totalInput.value = String(Number(qtyInput.value || 0) * Number(unitPriceInput.value || 0));
+    totalInput.value = String(Number(qtyInput.value || 0) * parseMoneyValue(unitPriceInput.value));
     const boq = getBoqItem(project, boqSelect.value);
     if (!boq) {
       hint.textContent = "";
@@ -2082,7 +2145,7 @@ function bindSubcontractForm(project) {
     qtyInput.max = String(availableForSubcontract);
     if (Number(qtyInput.value || 0) > availableForSubcontract) {
       qtyInput.value = String(availableForSubcontract);
-      totalInput.value = String(Number(qtyInput.value || 0) * Number(unitPriceInput.value || 0));
+      totalInput.value = String(Number(qtyInput.value || 0) * parseMoneyValue(unitPriceInput.value));
     }
     hint.textContent = `إجمالي البند: ${num(boq.qty)} | منفذ ذاتياً: ${num(selfExecuted)} | مسند للباطن: ${num(assigned)} | المتاح للباطن: ${num(availableForSubcontract)}`;
   };
@@ -2100,7 +2163,7 @@ function bindSubcontractForm(project) {
     const contractorName = String(fd.get("contractorName") || "").trim();
     const qty = Number(fd.get("qty") || 0);
     const unit = String(fd.get("unit") || "").trim();
-    const unitPrice = Number(fd.get("unitPrice") || 0);
+    const unitPrice = parseMoneyValue(fd.get("unitPrice"));
 
     if (!boqId || !contractorName || qty <= 0 || !unit || unitPrice < 0) {
       return;
@@ -2141,13 +2204,14 @@ function bindSubcontractForm(project) {
 function bindPettyForm(project) {
   const form = document.getElementById("add-petty-form");
   if (!form) return;
+  applyMoneyFormattingTo(form);
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const name = String(fd.get("name") || "").trim();
     const reason = String(fd.get("reason") || "").trim();
-    const amount = Number(fd.get("amount") || 0);
+    const amount = parseMoneyValue(fd.get("amount"));
     const note = String(fd.get("note") || "").trim();
 
     if (!name || !reason || amount <= 0) return;
@@ -2174,10 +2238,11 @@ function bindOperationForm(project) {
   const unitPriceInput = form.querySelector("[name='unitPrice']");
   const otherInput = form.querySelector("[name='otherCosts']");
   const totalInput = document.getElementById("operation-total");
+  applyMoneyFormattingTo(form);
 
   const refresh = () => {
     totalInput.value = String(
-      Number(qtyInput.value || 0) * Number(unitPriceInput.value || 0) + Number(otherInput.value || 0),
+      Number(qtyInput.value || 0) * parseMoneyValue(unitPriceInput.value) + parseMoneyValue(otherInput.value),
     );
   };
 
@@ -2191,8 +2256,8 @@ function bindOperationForm(project) {
     const name = String(fd.get("name") || "").trim();
     const unit = String(fd.get("unit") || "").trim();
     const qty = Number(fd.get("qty") || 0);
-    const unitPrice = Number(fd.get("unitPrice") || 0);
-    const otherCosts = Number(fd.get("otherCosts") || 0);
+    const unitPrice = parseMoneyValue(fd.get("unitPrice"));
+    const otherCosts = parseMoneyValue(fd.get("otherCosts"));
     const note = String(fd.get("note") || "").trim();
 
     if (!name || !unit || qty <= 0 || unitPrice < 0 || otherCosts < 0) return;
@@ -2218,43 +2283,42 @@ function bindRentalForms(project) {
   const itemForm = document.getElementById("add-rental-item-form");
   if (itemForm) {
     const durationType = itemForm.querySelector("[name='durationType']");
-    const durationValue = itemForm.querySelector("[name='durationValue']");
     const countInput = itemForm.querySelector("[name='count']");
     const priceInput = itemForm.querySelector("[name='price']");
     const referenceDate = itemForm.querySelector("[name='referenceDate']");
     const total = document.getElementById("rental-item-total");
+    applyMoneyFormattingTo(itemForm);
 
     const refresh = () => {
       total.value = String(
         calcDurationCost(
           String(durationType.value || "ساعة"),
-          Number(durationValue.value || 0),
+          1,
           Number(countInput.value || 0),
-          Number(priceInput.value || 0),
+          parseMoneyValue(priceInput.value),
           String(referenceDate.value || ""),
         ),
       );
     };
 
-    [durationType, durationValue, countInput, priceInput, referenceDate].forEach((x) => x.addEventListener("input", refresh));
+    [durationType, countInput, priceInput, referenceDate].forEach((x) => x.addEventListener("input", refresh));
 
     itemForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const fd = new FormData(itemForm);
       const equipmentName = String(fd.get("equipmentName") || "").trim();
       const durationTypeValue = String(fd.get("durationType") || "ساعة");
-      const durationValueNum = Number(fd.get("durationValue") || 0);
       const count = Number(fd.get("count") || 0);
-      const price = Number(fd.get("price") || 0);
+      const price = parseMoneyValue(fd.get("price"));
       const referenceDateValue = String(fd.get("referenceDate") || "");
 
-      if (!equipmentName || durationValueNum <= 0 || count <= 0 || price < 0 || !referenceDateValue) return;
+      if (!equipmentName || count <= 0 || price < 0 || !referenceDateValue) return;
 
       project.expenses.rental.items.push({
         id: crypto.randomUUID(),
         equipmentName,
         durationType: durationTypeValue,
-        durationValue: durationValueNum,
+        durationValue: 1,
         count,
         price,
         referenceDate: referenceDateValue,
@@ -2273,18 +2337,17 @@ function bindRentalForms(project) {
       const fd = new FormData(faultForm);
       const itemId = String(fd.get("itemId") || "");
       const durationTypeValue = String(fd.get("durationType") || "ساعة");
-      const durationValueNum = Number(fd.get("durationValue") || 0);
       const details = String(fd.get("details") || "").trim();
       const item = project.expenses.rental.items.find((x) => x.id === itemId);
-      if (!item || durationValueNum <= 0) return;
+      if (!item) return;
 
-      const amount = calcAdditionalRentalAmount(item, durationTypeValue, durationValueNum);
+      const amount = calcAdditionalRentalAmount(item, durationTypeValue, 1);
 
       project.expenses.rental.faults.push({
         id: crypto.randomUUID(),
         itemId,
         durationType: durationTypeValue,
-        durationValue: durationValueNum,
+        durationValue: 1,
         details,
         amount,
       });
@@ -2302,17 +2365,16 @@ function bindRentalForms(project) {
       const fd = new FormData(extraForm);
       const itemId = String(fd.get("itemId") || "");
       const durationTypeValue = String(fd.get("durationType") || "ساعة");
-      const durationValueNum = Number(fd.get("durationValue") || 0);
       const item = project.expenses.rental.items.find((x) => x.id === itemId);
-      if (!item || durationValueNum <= 0) return;
+      if (!item) return;
 
-      const amount = calcAdditionalRentalAmount(item, durationTypeValue, durationValueNum);
+      const amount = calcAdditionalRentalAmount(item, durationTypeValue, 1);
 
       project.expenses.rental.extras.push({
         id: crypto.randomUUID(),
         itemId,
         durationType: durationTypeValue,
-        durationValue: durationValueNum,
+        durationValue: 1,
         amount,
       });
       addAdminNotification("إضافة وقت إضافي", `تمت إضافة وقت إضافي لمعدة في مشروع ${project.name}`);
@@ -2326,12 +2388,13 @@ function bindRentalForms(project) {
 function bindSalaryForm(project) {
   const form = document.getElementById("add-salary-deduction-form");
   if (!form) return;
+  applyMoneyFormattingTo(form);
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const workerId = String(fd.get("workerId") || "");
-    const amount = Number(fd.get("amount") || 0);
+    const amount = parseMoneyValue(fd.get("amount"));
     const reason = String(fd.get("reason") || "").trim();
     const note = String(fd.get("note") || "").trim();
     if (!workerId || amount <= 0 || !reason) return;
@@ -2353,12 +2416,13 @@ function bindSalaryForm(project) {
 function bindProjectEquipmentsForm(project) {
   const form = document.getElementById("add-project-equipment-form");
   if (!form) return;
+  applyMoneyFormattingTo(form);
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const equipmentId = String(fd.get("equipmentId") || "");
-    const amount = Number(fd.get("amount") || 0);
+    const amount = parseMoneyValue(fd.get("amount"));
     const note = String(fd.get("note") || "").trim();
 
     if (!equipmentId || amount <= 0) return;
@@ -2586,6 +2650,14 @@ function getProjectCompletion(project) {
   return Math.min((executedQty / totalQty) * 100, 100);
 }
 
+function getDeductionsByWorker(project) {
+  return project.expenses.salary.deductions.reduce((acc, d) => {
+    const workerId = String(d.workerId || "");
+    acc[workerId] = Number(acc[workerId] || 0) + Number(d.amount || 0);
+    return acc;
+  }, {});
+}
+
 function normalizeProjectData(project) {
   const normalized = { ...project };
   normalized.createdAt = normalized.createdAt || normalized.startDate || new Date().toISOString();
@@ -2740,9 +2812,42 @@ function formatMoney(value) {
 function formatMoneyRaw(value) {
   const amount = Number(value || 0);
   return `${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount)} د.ك`;
+}
+
+function parseMoneyValue(value) {
+  const cleaned = String(value ?? "")
+    .replace(/,/g, "")
+    .replace(/[^\d.-]/g, "");
+  const parsed = Number(cleaned);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.round(parsed * 100) / 100;
+}
+
+function formatMoneyTyping(value) {
+  const raw = String(value ?? "").replace(/,/g, "").replace(/[^\d.]/g, "");
+  const [intPartRaw = "0", decPartRaw = ""] = raw.split(".");
+  const intPart = intPartRaw.replace(/^0+(?=\d)/, "") || "0";
+  const decPart = decPartRaw.slice(0, 2);
+  const formattedInt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Number(intPart || 0));
+  return decPart.length ? `${formattedInt}.${decPart}` : formattedInt;
+}
+
+function applyMoneyFormattingTo(rootEl) {
+  if (!rootEl) return;
+  rootEl.querySelectorAll("input.money-input").forEach((input) => {
+    if (input.dataset.moneyBound === "1") return;
+    input.dataset.moneyBound = "1";
+    input.addEventListener("input", () => {
+      input.value = formatMoneyTyping(input.value);
+    });
+    input.addEventListener("blur", () => {
+      input.value = formatMoneyTyping(input.value);
+    });
+    if (input.value) input.value = formatMoneyTyping(input.value);
+  });
 }
 
 function num(value) {
@@ -2776,6 +2881,10 @@ function outlineEyeOffIcon() {
 
 function outlineBellIcon() {
   return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>`;
+}
+
+function outlineBackArrowIcon() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6L4 12l6 6"/><path d="M5 12h15"/></svg>`;
 }
 
 function sidebarButton(id, title) {
@@ -2927,7 +3036,7 @@ function projectCreateFormTemplate(inModal = false) {
             <div class="field"><label>اسم البند</label><input class="input" name="boqName" /></div>
             <div class="field"><label>الكمية</label><input class="input" type="number" min="0" step="0.01" name="boqQty" /></div>
             <div class="field"><label>الوحدة</label><select class="select" name="boqUnit">${unitOptionsHtml()}</select></div>
-            <div class="field"><label>سعر الوحدة</label><input class="input" type="number" min="0" step="0.01" name="boqUnitPrice" /></div>
+            <div class="field"><label>سعر الوحدة</label><input class="input money-input" type="text" inputmode="decimal" name="boqUnitPrice" /></div>
             <div class="field"><label>الإجمالي</label><input id="boq-total-preview" class="input" readonly value="0" /></div>
           </div>
           <div class="row" style="margin-top:10px">

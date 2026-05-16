@@ -95,17 +95,24 @@ textarea {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.money-input {
+  font-size: calc(1rem + 4px);
+}
+
 .select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #567089 50%),
-    linear-gradient(135deg, #567089 50%, transparent 50%);
-  background-position: calc(14px) calc(50% - 3px), calc(8px) calc(50% - 3px);
-  background-size: 6px 6px, 6px 6px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23567089' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: left 10px center;
+  background-size: 14px 14px;
   background-repeat: no-repeat;
-  padding-left: 28px;
+  padding-left: 34px;
   padding-right: 12px;
+}
+
+.select::-ms-expand {
+  display: none;
 }
 
 .textarea {
@@ -300,6 +307,24 @@ textarea {
   margin-inline-start: 4px;
 }
 
+.section-tools-row {
+  align-items: center;
+}
+
+.section-tools-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1 1 620px;
+  min-width: 0;
+}
+
+.section-tools-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .topbar-actions {
   justify-content: flex-end;
   align-items: center;
@@ -439,15 +464,33 @@ textarea {
 
 .project-header-row {
   margin-bottom: 0;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
 }
 
-.project-header-actions {
-  width: auto;
-  justify-content: flex-end;
-  margin-top: 0;
+.project-header-nav {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.project-header-title {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-back-btn {
+  flex: 0 0 auto;
+}
+
+.project-delete-btn {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
 }
 
 .project-tabs-card {
@@ -605,6 +648,43 @@ th {
   padding: 14px;
 }
 
+#project-modal-backdrop {
+  overflow: hidden;
+}
+
+.project-create-modal {
+  max-width: calc(100vw - 20px);
+  overflow-x: hidden;
+  overflow-y: hidden;
+  touch-action: pan-y;
+}
+
+.project-create-modal .section-card {
+  margin-bottom: 0;
+}
+
+.project-measurements-table-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.project-draft-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.project-draft-table th,
+.project-draft-table td {
+  white-space: normal;
+  word-break: break-word;
+}
+
 @media (max-width: 1080px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -695,6 +775,22 @@ th {
     width: 100%;
   }
 
+  .section-tools-controls {
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-tools-controls > .btn {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .section-tools-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .tabs,
   .subtabs,
   .settings-tabs {
@@ -754,11 +850,17 @@ th {
 
   .project-header-row {
     gap: 10px;
+    flex-wrap: wrap;
   }
 
-  .project-header-actions {
+  .project-header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .project-delete-btn {
     width: 100%;
-    justify-content: flex-start;
+    margin-inline-start: 0;
   }
 
   .summary-cards,
@@ -783,6 +885,16 @@ th {
   .textarea {
     font-size: 16px;
     padding: 10px 11px;
+  }
+
+  .money-input {
+    font-size: 20px;
+  }
+
+  .select {
+    padding-left: 34px;
+    background-position: left 8px center;
+    background-size: 13px 13px;
   }
 
   table {
