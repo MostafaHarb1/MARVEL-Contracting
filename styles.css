@@ -439,7 +439,7 @@ textarea {
 
 .project-meta-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 8px 10px;
   border: 1px solid #e9eff7;
@@ -505,31 +505,11 @@ textarea {
 }
 
 .split-col {
-  display: grid;
-  gap: 5px;
-}
-
-.split-bar-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: #e6eef7;
-  overflow: hidden;
-}
-
-.split-bar-self,
-.split-bar-sub {
   display: block;
-  height: 100%;
-  border-radius: 999px;
-}
-
-.split-bar-self {
-  background: linear-gradient(90deg, #1bbf78, #14995f);
-}
-
-.split-bar-sub {
-  background: linear-gradient(90deg, #f49d39, #db7e13);
+  padding: 6px 8px;
+  border: 1px solid #e5edf7;
+  border-radius: 9px;
+  background: #fbfdff;
 }
 
 .project-overall-progress {
@@ -581,6 +561,18 @@ textarea {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #2d8ee9, #0f4d8a);
+}
+
+.project-header-title-wrap {
+  min-width: 0;
+}
+
+.project-header-meta {
+  margin: 2px 0 0;
+  color: #6f8298;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .project-card-menu {

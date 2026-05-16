@@ -323,7 +323,6 @@ function renderProjectsSection(root) {
         const progress = Math.max(0, Math.min(100, getProjectCompletion(project)));
         const status = progress >= 100 ? "مكتمل" : "قيد التنفيذ";
         const qtyStats = getSubcontractQtyStats(project);
-        const qtyWithUnit = getProjectTotalQtyWithUnit(project);
         return `
           <article class="project-card ${progress >= 100 ? "done" : ""}" data-open-project="${project.id}">
             <div class="project-card-head">
@@ -342,16 +341,13 @@ function renderProjectsSection(root) {
             <div class="project-meta-grid">
               <div class="project-meta-item">${infoIcon("calendar")}<span>${escapeHtml(project.startDate || "-")}</span></div>
               <div class="project-meta-item">${infoIcon("items")}<span>${project.boq.length} بند</span></div>
-              <div class="project-meta-item">${infoIcon("qty")}<span>${qtyWithUnit}</span></div>
             </div>
             <div class="split-progress">
               <div class="split-col">
                 <div class="split-row"><span>تنفيذ ذاتي</span><strong>${qtyStats.selfPercent.toFixed(1)}%</strong></div>
-                <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
               </div>
               <div class="split-col">
                 <div class="split-row"><span>مقاولو الباطن</span><strong>${qtyStats.subcontractPercent.toFixed(1)}%</strong></div>
-                <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
               </div>
             </div>
             <div class="project-overall-progress">
@@ -465,13 +461,17 @@ function renderProjectsSection(root) {
   }
 
   const summary = getProjectFinancialSummary(project);
+  const projectMetaQty = getProjectTotalQtyWithUnit(project);
 
   root.innerHTML = `
     <section class="section-card project-header-card">
       <div class="row project-header-row">
         <div class="project-header-nav">
           <button class="btn btn-secondary icon-action-btn project-back-btn" id="back-project-list" title="العودة لقائمة المشاريع" aria-label="العودة لقائمة المشاريع">${outlineBackArrowIcon()}</button>
-          <h3 class="card-title project-header-title">${escapeHtml(project.name)}</h3>
+          <div class="project-header-title-wrap">
+            <h3 class="card-title project-header-title">${escapeHtml(project.name)}</h3>
+            <p class="project-header-meta">البداية: ${escapeHtml(project.startDate || "-")} • إجمالي الوحدات: ${projectMetaQty} • البنود: ${project.boq.length}</p>
+          </div>
         </div>
         <button class="btn btn-danger project-delete-btn" id="delete-project-inside">حذف المشروع</button>
       </div>
