@@ -319,19 +319,19 @@ function renderProjectsSection(root) {
 
     const cards = state.projects
       .map((project) => {
-        const progress = getProjectCompletion(project);
+        const progress = Math.max(0, Math.min(100, getProjectCompletion(project)));
         const status = progress >= 100 ? "مكتمل" : "قيد التنفيذ";
         const qtyStats = getSubcontractQtyStats(project);
         const qtyWithUnit = getProjectTotalQtyWithUnit(project);
         return `
           <article class="project-card ${progress >= 100 ? "done" : ""}" data-open-project="${project.id}">
-            <div class="project-card-head">
-              <div class="project-card-title-wrap">
-                <strong class="project-card-title">${escapeHtml(project.name)}</strong>
-                <span class="project-card-date">${escapeHtml(project.startDate || "-")}</span>
-              </div>
-              <div class="project-card-actions">
-                <span class="badge ${progress >= 100 ? "done" : "running"}">${status}</span>
+            <div class="project-card-top">
+              <div class="project-card-icon-block">${projectBuildingIcon()}</div>
+              <div class="project-card-head">
+                <div class="project-card-title-wrap">
+                  <strong class="project-card-title">${escapeHtml(project.name)}</strong>
+                  <span class="badge ${progress >= 100 ? "done" : "running"}"><b class="status-dot"></b>${status}</span>
+                </div>
                 <div class="project-card-menu">
                   <button type="button" class="project-menu-trigger" data-project-menu-toggle="${project.id}" aria-label="خيارات المشروع">${outlineMoreIcon()}</button>
                   <div class="project-menu-dropdown ${ui.openProjectMenuId === project.id ? "open" : ""}">
@@ -341,20 +341,31 @@ function renderProjectsSection(root) {
                 </div>
               </div>
             </div>
-            <div class="project-meta project-meta-grid">
-              <span>${infoIcon("calendar")} تاريخ البداية: ${escapeHtml(project.startDate || "-")}</span>
-              <span>${infoIcon("items")} عدد البنود: ${project.boq.length}</span>
-              <span>${infoIcon("qty")} إجمالي الكمية: ${qtyWithUnit}</span>
+            <div class="project-meta-grid">
+              <div class="project-meta-item">${infoIcon("calendar")}<div><small>تاريخ البداية</small><strong>${escapeHtml(project.startDate || "-")}</strong></div></div>
+              <div class="project-meta-item">${infoIcon("items")}<div><small>عدد البنود</small><strong>${project.boq.length} بند</strong></div></div>
+              <div class="project-meta-item">${infoIcon("qty")}<div><small>إجمالي الكمية</small><strong>${qtyWithUnit}</strong></div></div>
             </div>
-            <div class="split-progress">
-              <div class="split-row"><span>تنفيذ ذاتي ${qtyStats.selfPercent.toFixed(1)}%</span><span>مقاولي باطن ${qtyStats.subcontractPercent.toFixed(1)}%</span></div>
-              <div class="split-bars">
-                <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
-                <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
+            <div class="split-progress-panel">
+              <div class="split-progress">
+                <div class="split-col">
+                  <div class="split-row"><span>تنفيذ ذاتي</span><strong>${qtyStats.selfPercent.toFixed(1)}%</strong></div>
+                  <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
+                </div>
+                <div class="split-col">
+                  <div class="split-row"><span>مقاولو الباطن</span><strong>${qtyStats.subcontractPercent.toFixed(1)}%</strong></div>
+                  <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
+                </div>
               </div>
             </div>
-            <div class="project-card-progress">
-              ${progressBar(progress)}
+            <div class="project-overall-progress">
+              <div class="project-overall-head">
+                <span>نسبة الإكمال الكلية</span>
+                <div class="project-overall-value">${progress.toFixed(1)}% ${trendIcon()}</div>
+              </div>
+              <div class="project-overall-track">
+                <span class="project-overall-fill" style="width:${progress.toFixed(1)}%"></span>
+              </div>
             </div>
           </article>
         `;
@@ -3048,6 +3059,14 @@ function infoIcon(type) {
     return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
   }
   return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>`;
+}
+
+function projectBuildingIcon() {
+  return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l7-3v17"/><path d="M19 21V11h-7"/><path d="M8 10h1M8 13h1M8 16h1M11 10h1M11 13h1M11 16h1M15 14h1M15 17h1"/></svg>`;
+}
+
+function trendIcon() {
+  return `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l7-7 4 4 7-7"/><path d="M14 7h7v7"/></svg>`;
 }
 
 function getProjectTotalQtyWithUnit(project) {
