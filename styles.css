@@ -423,10 +423,16 @@ textarea {
   font-size: 0.99rem;
   color: #102c4d;
   line-height: 1.3;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .project-meta-grid {
