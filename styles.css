@@ -386,7 +386,7 @@ textarea {
   border-radius: 18px;
   padding: 14px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   height: 250px;
@@ -408,7 +408,7 @@ textarea {
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid #e8eef6;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .project-card-title-wrap {
@@ -433,8 +433,9 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  padding: 0 0 10px;
+  padding: 0 0 12px;
   border-bottom: 1px solid #e8eef6;
+  margin-bottom: 12px;
 }
 
 .project-meta-item {
@@ -463,9 +464,10 @@ textarea {
 .split-progress {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   border-bottom: 1px solid #e8eef6;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
 }
 
 .split-row {
@@ -523,7 +525,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: auto;
+  margin-top: 12px;
 }
 
 .project-overall-label {
@@ -1098,7 +1100,31 @@ th {
   }
 
   .project-card {
-    height: 250px;
+    min-height: 250px;
+    height: auto;
+    overflow: visible;
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .project-overall-progress {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 10px;
+    margin-top: 12px;
+  }
+
+  .project-overall-label,
+  .project-overall-value {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .project-overall-track {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
   }
 
   .projects-list-header {
