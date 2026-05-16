@@ -320,17 +320,25 @@ function renderProjectsSection(root) {
         const progress = getProjectCompletion(project);
         const status = progress >= 100 ? "مكتمل" : "جاري";
         const qtyStats = getSubcontractQtyStats(project);
+        const totalQty = project.boq.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        const totalValue = project.boq.reduce((sum, item) => sum + Number(item.total || 0), 0);
         return `
           <article class="project-card ${progress >= 100 ? "done" : ""}" data-open-project="${project.id}">
-            <div class="row">
-              <strong>${escapeHtml(project.name)}</strong>
+            <div class="project-card-head">
+              <div class="project-card-title-wrap">
+                <strong class="project-card-title">${escapeHtml(project.name)}</strong>
+                <span class="project-card-date">البداية: ${escapeHtml(project.startDate || "-")}</span>
+              </div>
               <span class="badge ${progress >= 100 ? "done" : "running"}">${status}</span>
             </div>
-            <div class="project-meta">
-              <span>تاريخ البداية: ${escapeHtml(project.startDate || "-")}</span>
-              ${progressBar(progress)}
+            <div class="project-meta project-meta-grid">
               <span>عدد البنود: ${project.boq.length}</span>
+              <span>إجمالي الكمية: ${num(totalQty)}</span>
+              <span>قيمة البنود: ${showMoney(totalValue)}</span>
               <span>تشغيل ذاتي: ${qtyStats.selfPercent.toFixed(1)}% | باطن: ${qtyStats.subcontractPercent.toFixed(1)}%</span>
+            </div>
+            <div class="project-card-progress">
+              ${progressBar(progress)}
             </div>
           </article>
         `;
@@ -466,7 +474,7 @@ function renderProjectTabContent(project, summary) {
 
     return `
       <section class="section-card">
-        <div class="row">
+        <div class="row boq-header-row">
           <h3 class="card-title">المقايسات</h3>
           <button class="btn btn-primary" type="button" data-open-modal="project-boq-modal">إضافة مقايسة</button>
         </div>
@@ -489,7 +497,7 @@ function renderProjectTabContent(project, summary) {
           </div>
         </div>
         ${project.boq.length ? `
-          <div class="table-wrap">
+          <div class="table-wrap boq-table-wrap">
             <table>
               <thead>
                 <tr><th>اسم البند</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>نسبة الإكمال</th></tr>
@@ -552,7 +560,7 @@ function renderProjectTabContent(project, summary) {
               .join("")}</select></div>
             <div class="field"><label>اسم المقاول</label><input class="input" name="contractorName" required /></div>
             <div class="field"><label>الكمية</label><input class="input" type="number" step="0.01" min="0" name="qty" required /></div>
-            <div class="field"><label>الوحدة</label><select class="select" name="unit" required>${unitOptionsHtml()}</select></div>
+            <div class="field"><label>الوحدة</label><select class="select" name="unit" id="subcontract-unit" required disabled><option value="">اختر المقايسة أولاً</option></select></div>
             <div class="field"><label>سعر الوحدة</label><input class="input money-input" type="text" inputmode="decimal" name="unitPrice" required /></div>
             <div class="field"><label>الإجمالي</label><input class="input" id="subcontract-total" readonly value="0" /></div>
           </div>
@@ -900,7 +908,8 @@ function rentalExpensesTemplate(project) {
 }
 
 function salaryTemplate(project) {
-  const totalSalaries = state.workers.reduce((sum, w) => sum + Number(w.salary || 0), 0);
+  const projectWorkers = getProjectWorkers(project);
+  const totalSalaries = projectWorkers.reduce((sum, w) => sum + Number(w.salary || 0), 0);
   const deductionsByWorker = getDeductionsByWorker(project);
   const totalDeductions = Object.values(deductionsByWorker).reduce((sum, value) => sum + value, 0);
   const totalPaidFromCash = Math.max(totalSalaries - totalDeductions, 0);
@@ -919,7 +928,7 @@ function salaryTemplate(project) {
     )
     .join("");
 
-  const workersRows = state.workers
+  const workersRows = projectWorkers
     .map(
       (w) => {
       const deduction = Number(deductionsByWorker[w.id] || 0);
@@ -946,8 +955,25 @@ function salaryTemplate(project) {
 
     ${ui.salarySubtab === "salaries" ? `
       <section class="section-card">
-        <h3 class="card-title">المرتبات</h3>
-        ${state.workers.length ? `<div class="table-wrap"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>المرتب</th><th>الخصم</th><th>المدفوع من النقدية</th></tr></thead><tbody>${workersRows}</tbody></table></div>` : '<div class="empty">لا يوجد موظفون في الإعدادات</div>'}
+        <div class="row">
+          <h3 class="card-title">المرتبات</h3>
+          <button class="btn btn-primary" type="button" data-open-modal="project-workers-modal">تعيين موظفي المشروع</button>
+        </div>
+        <div class="modal-backdrop hidden" id="project-workers-modal">
+          <div class="modal">
+            <div class="row">
+              <h3 class="card-title">تعيين موظفي المشروع</h3>
+              <button class="btn btn-secondary" type="button" data-close-modal="project-workers-modal">إغلاق</button>
+            </div>
+            <form id="project-workers-form" class="form-grid">
+              ${state.workers.length ? state.workers
+                .map((w) => `<label class="row" style="justify-content:flex-start;gap:8px"><input type="checkbox" name="workerIds" value="${w.id}" ${project.assignedWorkerIds?.includes(w.id) ? "checked" : ""} /><span>${escapeHtml(w.name)} - ${escapeHtml(w.jobTitle)}</span></label>`)
+                .join("") : "<div class='empty'>لا يوجد موظفون في الإعدادات</div>"}
+              <button class="btn btn-primary" type="submit">حفظ التعيين</button>
+            </form>
+          </div>
+        </div>
+        ${projectWorkers.length ? `<div class="table-wrap"><table><thead><tr><th>الموظف</th><th>الوظيفة</th><th>المرتب</th><th>الخصم</th><th>المدفوع من النقدية</th></tr></thead><tbody>${workersRows}</tbody></table></div>` : '<div class="empty">لم يتم تعيين موظفين لهذا المشروع</div>'}
         <div class="summary-cards" style="margin-top:12px">
           <article class="summary-card"><h4>إجمالي المرتبات</h4><p>${formatMoney(totalSalaries)}</p></article>
           <article class="summary-card"><h4>الخصومات</h4><p>${formatMoney(totalDeductions)}</p></article>
@@ -960,8 +986,9 @@ function salaryTemplate(project) {
       <section class="section-card">
         <div class="row">
           <h3 class="card-title">الخصومات</h3>
-          <button class="btn btn-primary" type="button" data-open-modal="salary-deduction-modal">إضافة خصم</button>
+          <button class="btn btn-primary" type="button" data-open-modal="salary-deduction-modal" ${projectWorkers.length ? "" : "disabled"}>إضافة خصم</button>
         </div>
+        ${projectWorkers.length ? "" : "<div class='empty' style='margin-bottom:12px'>يرجى تعيين موظفي المشروع أولاً</div>"}
         <div class="modal-backdrop hidden" id="salary-deduction-modal">
           <div class="modal">
             <div class="row">
@@ -970,7 +997,7 @@ function salaryTemplate(project) {
             </div>
         <form id="add-salary-deduction-form" class="form-grid">
           <div class="grid-3">
-            <div class="field"><label>اسم الموظف</label><select class="select" name="workerId" required>${state.workers
+            <div class="field"><label>اسم الموظف</label><select class="select" name="workerId" required>${projectWorkers
               .map((w) => `<option value="${w.id}">${escapeHtml(w.name)}</option>`)
               .join("")}</select></div>
             <div class="field"><label>المبلغ</label><input class="input money-input" type="text" inputmode="decimal" name="amount" required /></div>
@@ -981,7 +1008,7 @@ function salaryTemplate(project) {
         </form>
           </div>
         </div>
-        ${project.expenses.salary.deductions.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>الموظف</th><th>المبلغ</th><th>السبب</th><th>ملاحظة</th><th>إجراء</th></tr></thead><tbody>${deductionsRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد خصومات</div>'}
+        ${projectWorkers.length ? (project.expenses.salary.deductions.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>الموظف</th><th>المبلغ</th><th>السبب</th><th>ملاحظة</th><th>إجراء</th></tr></thead><tbody>${deductionsRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا توجد خصومات</div>') : '<div class="empty" style="margin-top:12px">يرجى تعيين موظفي المشروع أولاً</div>'}
       </section>
     ` : ""}
   `;
@@ -1025,15 +1052,13 @@ function renderExecutionSection(root) {
 
   root.innerHTML = `
     <section class="section-card">
-      <div class="row section-tools-row">
+      <div class="row section-tools-row execution-header-row">
         <h3 class="card-title">التنفيذ</h3>
-        <div class="row section-tools-controls">
-          <div class="tabs section-tools-tabs" id="execution-tabs">
-            ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
-            ${tabButton("logs", "سجل التنفيذ", ui.executionTab)}
-          </div>
-          <button class="btn btn-primary" id="open-execution-modal">إضافة تنفيذ</button>
-        </div>
+        <button class="btn btn-primary" id="open-execution-modal">إضافة تنفيذ</button>
+      </div>
+      <div class="tabs section-tools-tabs" id="execution-tabs">
+        ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
+        ${tabButton("logs", "سجل التنفيذ", ui.executionTab)}
       </div>
       <div class="modal-backdrop hidden" id="execution-modal-backdrop">
         <div class="modal">
@@ -1617,6 +1642,7 @@ function renderSettingsSection(root) {
       state.workers = state.workers.filter((w) => w.id !== id);
       state.projects.forEach((p) => {
         p.expenses.salary.deductions = p.expenses.salary.deductions.filter((d) => d.workerId !== id);
+        p.assignedWorkerIds = (p.assignedWorkerIds || []).filter((workerId) => workerId !== id);
       });
       saveState();
       render();
@@ -1692,7 +1718,7 @@ function renderAccountsSection(root) {
       <div class="row">
         <h3 class="card-title">الحسابات العامة</h3>
       </div>
-      <div class="grid-3">
+      <div class="grid-3 accounts-filters-row">
         <div class="field">
           <label>فلتر السنة</label>
           <select class="select" id="accounts-filter-year">
@@ -1962,6 +1988,7 @@ function bindProjectCreateForm() {
       },
       subcontractors: [],
       companyEquipments: [],
+      assignedWorkerIds: [],
     });
     addAdminNotification("إضافة مشروع", `تمت إضافة مشروع جديد: ${name}`);
 
@@ -2012,6 +2039,7 @@ function bindProjectDetailActions(project) {
   bindRentalForms(project);
   bindSalaryForm(project);
   bindProjectEquipmentsForm(project);
+  bindProjectWorkersForm(project);
 
   document.querySelectorAll("[data-delete-petty]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -2145,6 +2173,7 @@ function bindSubcontractForm(project) {
   const boqSelect = form.querySelector("[name='boqId']");
   const qtyInput = form.querySelector("[name='qty']");
   const unitPriceInput = form.querySelector("[name='unitPrice']");
+  const unitSelect = form.querySelector("[name='unit']");
   const totalInput = document.getElementById("subcontract-total");
   const hint = document.getElementById("subcontract-remaining-hint");
 
@@ -2153,8 +2182,11 @@ function bindSubcontractForm(project) {
     const boq = getBoqItem(project, boqSelect.value);
     if (!boq) {
       hint.textContent = "";
+      unitSelect.innerHTML = `<option value="">اختر المقايسة أولاً</option>`;
       return;
     }
+    unitSelect.innerHTML = `<option value="${escapeHtml(boq.unit || "")}">${escapeHtml(boq.unit || "-")}</option>`;
+    unitSelect.value = String(boq.unit || "");
     const assigned = getSubcontractAssignedQtyForBoq(project, boq.id);
     const selfExecuted = getSelfExecutedQtyForBoq(project, boq.id);
     const availableForSubcontract = Math.max(Number(boq.qty || 0) - assigned - selfExecuted, 0);
@@ -2178,14 +2210,14 @@ function bindSubcontractForm(project) {
     const boqId = String(fd.get("boqId") || "");
     const contractorName = String(fd.get("contractorName") || "").trim();
     const qty = Number(fd.get("qty") || 0);
-    const unit = String(fd.get("unit") || "").trim();
     const unitPrice = parseMoneyValue(fd.get("unitPrice"));
 
-    if (!boqId || !contractorName || qty <= 0 || !unit || unitPrice < 0) {
+    if (!boqId || !contractorName || qty <= 0 || unitPrice < 0) {
       return;
     }
     const boq = getBoqItem(project, boqId);
     if (!boq) return;
+    const unit = String(boq.unit || "").trim();
     const assigned = getSubcontractAssignedQtyForBoq(project, boqId);
     const selfExecuted = getSelfExecutedQtyForBoq(project, boqId);
     const availableForSubcontract = Math.max(Number(boq.qty || 0) - assigned - selfExecuted, 0);
@@ -2414,6 +2446,20 @@ function bindSalaryForm(project) {
     const reason = String(fd.get("reason") || "").trim();
     const note = String(fd.get("note") || "").trim();
     if (!workerId || amount <= 0 || !reason) return;
+    if (!project.assignedWorkerIds?.includes(workerId)) {
+      showAppPopup("الموظف غير معين على هذا المشروع");
+      return;
+    }
+    const worker = state.workers.find((w) => w.id === workerId);
+    if (!worker) return;
+    const currentWorkerDeductions = project.expenses.salary.deductions
+      .filter((d) => d.workerId === workerId)
+      .reduce((sum, d) => sum + Number(d.amount || 0), 0);
+    const remaining = Math.max(Number(worker.salary || 0) - currentWorkerDeductions, 0);
+    if (amount > remaining) {
+      showAppPopup(`قيمة الخصم تتجاوز مرتب الموظف. المتاح للخصم: ${formatMoneyRaw(remaining)}`);
+      return;
+    }
 
     project.expenses.salary.deductions.push({
       id: crypto.randomUUID(),
@@ -2424,6 +2470,24 @@ function bindSalaryForm(project) {
     });
     addAdminNotification("إضافة خصم موظف", `تمت إضافة خصم في مشروع ${project.name}`);
 
+    saveState();
+    render();
+  });
+}
+
+function bindProjectWorkersForm(project) {
+  const form = document.getElementById("project-workers-form");
+  if (!form) return;
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const workerIds = fd.getAll("workerIds").map((id) => String(id));
+    project.assignedWorkerIds = state.workers
+      .map((w) => w.id)
+      .filter((id) => workerIds.includes(id));
+    project.expenses.salary.deductions = project.expenses.salary.deductions.filter((d) =>
+      project.assignedWorkerIds.includes(d.workerId),
+    );
     saveState();
     render();
   });
@@ -2494,7 +2558,10 @@ function getGeneralReports(filters = {}) {
   const totalRevenue = projects.reduce((s, p) => s + p.revenue, 0);
   const totalExpenses = projects.reduce((s, p) => s + p.cost, 0);
 
-  const totalSalaries = state.workers.reduce((s, w) => s + Number(w.salary || 0), 0) * projects.length;
+  const totalSalaries = filteredProjects.reduce(
+    (s, p) => s + getProjectWorkers(p).reduce((sw, w) => sw + Number(w.salary || 0), 0),
+    0,
+  );
   const deductions = filteredProjects.reduce(
     (s, p) => s + p.expenses.salary.deductions.reduce((x, y) => x + Number(y.amount || 0), 0),
     0,
@@ -2542,7 +2609,7 @@ function getGeneralReports(filters = {}) {
         0,
       );
       const salary = Math.max(
-        state.workers.reduce((sum, w) => sum + Number(w.salary || 0), 0) -
+        getProjectWorkers(p).reduce((sum, w) => sum + Number(w.salary || 0), 0) -
           p.expenses.salary.deductions.reduce((sum, d) => sum + Number(d.amount || 0), 0),
         0,
       );
@@ -2594,7 +2661,7 @@ function getProjectFinancialSummary(project) {
     (sum, item) => sum + getRentalNet(item, project.expenses.rental.faults, project.expenses.rental.extras).net,
     0,
   );
-  const totalSalaries = state.workers.reduce((sum, w) => sum + Number(w.salary || 0), 0);
+  const totalSalaries = getProjectWorkers(project).reduce((sum, w) => sum + Number(w.salary || 0), 0);
   const deductions = project.expenses.salary.deductions.reduce((sum, d) => sum + Number(d.amount || 0), 0);
   const netSalaries = Math.max(totalSalaries - deductions, 0);
   const projectEquipment = project.companyEquipments.reduce(
@@ -2612,6 +2679,11 @@ function getProjectFinancialSummary(project) {
     totalExpenses,
     qtyStats,
   };
+}
+
+function getProjectWorkers(project) {
+  const assigned = Array.isArray(project.assignedWorkerIds) ? project.assignedWorkerIds : [];
+  return state.workers.filter((w) => assigned.includes(w.id));
 }
 
 function getSubcontractAssignedQtyForBoq(project, boqId, excludeSubcontractId = null) {
@@ -2698,6 +2770,9 @@ function normalizeProjectData(project) {
     salary: { deductions: [] },
   };
   normalized.companyEquipments = normalized.companyEquipments || [];
+  normalized.assignedWorkerIds = Array.isArray(normalized.assignedWorkerIds)
+    ? normalized.assignedWorkerIds.filter((id) => state.workers.some((w) => w.id === id))
+    : [];
   return normalized;
 }
 

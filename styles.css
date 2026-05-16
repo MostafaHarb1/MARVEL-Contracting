@@ -381,15 +381,15 @@ textarea {
 }
 
 .project-card {
-  background: linear-gradient(165deg, #fbfdff 0%, #f4f9ff 100%);
+  background: linear-gradient(165deg, #ffffff 0%, #f6faff 100%);
   border: 1px solid var(--border);
-  border-right: 4px solid var(--primary-2);
-  border-radius: 14px;
-  padding: 14px;
+  border-right: 5px solid var(--primary-2);
+  border-radius: 16px;
+  padding: 16px;
   display: grid;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .project-card:hover {
@@ -405,6 +405,43 @@ textarea {
   gap: 5px;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.project-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.project-card-title-wrap {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.project-card-title {
+  font-size: 1.04rem;
+  color: #102c4d;
+  line-height: 1.45;
+}
+
+.project-card-date {
+  font-size: 0.84rem;
+  color: #7a8ca3;
+}
+
+.project-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.project-meta-grid span:last-child {
+  grid-column: 1 / -1;
+}
+
+.project-card-progress {
+  margin-top: 2px;
 }
 
 .badge {
@@ -649,13 +686,14 @@ th {
 }
 
 #project-modal-backdrop {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .project-create-modal {
   max-width: calc(100vw - 20px);
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
   touch-action: pan-y;
 }
 
@@ -683,6 +721,22 @@ th {
 .project-draft-table td {
   white-space: normal;
   word-break: break-word;
+}
+
+.boq-header-row {
+  margin-bottom: 24px;
+}
+
+.boq-table-wrap {
+  margin-top: 24px;
+}
+
+.execution-header-row {
+  margin-bottom: 14px;
+}
+
+.accounts-filters-row {
+  align-items: end;
 }
 
 @media (max-width: 1080px) {
@@ -844,6 +898,10 @@ th {
     gap: 16px;
   }
 
+  .project-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
   .projects-list-header {
     margin-bottom: 24px;
   }
@@ -917,6 +975,21 @@ th {
 
   .progress-wrap {
     min-width: 120px;
+  }
+
+  .accounts-filters-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .accounts-filters-row .field {
+    flex: 0 0 180px;
+    min-width: 180px;
   }
 
   .execution-table-wrap {
