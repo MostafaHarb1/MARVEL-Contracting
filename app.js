@@ -1030,6 +1030,7 @@ function renderExecutionSection(root) {
         <div class="row section-tools-controls">
           <div class="tabs section-tools-tabs" id="execution-tabs">
             ${tabButton("allItems", "كل البنود من جميع المشاريع", ui.executionTab)}
+            ${tabButton("logs", "سجل التنفيذ", ui.executionTab)}
           </div>
           <button class="btn btn-primary" id="open-execution-modal">إضافة تنفيذ</button>
         </div>
@@ -1058,6 +1059,21 @@ function renderExecutionSection(root) {
     ${ui.executionTab === "allItems" ? `
       <section class="section-card">
         ${flatBoq.length ? `<div class="table-wrap execution-table-wrap"><div class="execution-scroll-inner"><table class="execution-table"><thead><tr><th>المشروع</th><th>البند</th><th>الإجمالي</th><th>المسند للباطن</th><th>التشغيل الذاتي المتاح</th><th>منفذ ذاتي</th><th>منفذ باطن</th><th>المنفذ الكلي</th><th>المتبقي الذاتي</th><th>نسبة الإكمال</th></tr></thead><tbody>${rows}</tbody></table></div></div>` : '<div class="empty">لا توجد بنود متاحة</div>'}
+      </section>
+    ` : ""}
+
+    ${ui.executionTab === "logs" ? `
+      <section class="section-card">
+        ${state.executionLogs.length ? `<div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقايسة</th><th>المنفذ</th><th>الكمية</th><th>الوقت</th></tr></thead><tbody>${state.executionLogs
+          .slice()
+          .reverse()
+          .slice(0, 40)
+          .map((log) => {
+            const project = state.projects.find((p) => p.id === log.projectId);
+            const boq = project?.boq.find((b) => b.id === log.boqId);
+            return `<tr><td>${escapeHtml(project?.name || "-")}</td><td>${escapeHtml(boq?.itemName || "-")}</td><td>${escapeHtml(log.performerLabel || "-")}</td><td>${num(log.executedQty)}</td><td>${escapeHtml(new Date(log.createdAt).toLocaleString("en-US"))}</td></tr>`;
+          })
+          .join("")}</tbody></table></div>` : '<div class="empty">لا توجد عمليات تنفيذ بعد</div>'}
       </section>
     ` : ""}
 
@@ -1247,8 +1263,8 @@ function renderEquipmentsSection(root) {
         <h3 class="card-title">معدات الشركة</h3>
         <div class="row section-tools-controls">
           <div class="tabs section-tools-tabs" id="equipments-tabs">
-            ${tabButton("equipments", "المعدات", ui.equipmentsTab)}
-            ${tabButton("expenses", "المصاريف", ui.equipmentsTab)}
+            ${tabButton("equipments", "قائمة المعدات", ui.equipmentsTab)}
+            ${tabButton("expenses", "مصاريف المعدات", ui.equipmentsTab)}
           </div>
           <button class="btn btn-primary" type="button" data-open-modal="${equipmentsModalId}">${equipmentsAddLabel}</button>
         </div>
