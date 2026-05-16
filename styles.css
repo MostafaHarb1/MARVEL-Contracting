@@ -373,7 +373,7 @@ textarea {
 .project-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .projects-list-header {
@@ -384,13 +384,12 @@ textarea {
   background: linear-gradient(165deg, #ffffff 0%, #f7fbff 100%);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 12px;
+  padding: 14px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  max-height: 170px;
-  overflow: hidden;
+  height: 250px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -408,6 +407,8 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  border-bottom: 1px solid #e8eef6;
+  padding-bottom: 10px;
 }
 
 .project-card-title-wrap {
@@ -431,8 +432,9 @@ textarea {
 .project-meta-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  padding: 0;
+  gap: 8px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid #e8eef6;
 }
 
 .project-meta-item {
@@ -462,6 +464,8 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  border-bottom: 1px solid #e8eef6;
+  padding-bottom: 10px;
 }
 
 .split-row {
@@ -519,6 +523,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-top: auto;
 }
 
 .project-overall-label {
@@ -1093,7 +1098,7 @@ th {
   }
 
   .project-card {
-    max-height: none;
+    height: 250px;
   }
 
   .projects-list-header {

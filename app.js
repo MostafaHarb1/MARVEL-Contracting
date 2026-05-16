@@ -591,7 +591,12 @@ function renderProjectTabContent(project, summary) {
             <td>${escapeHtml(doc.type || "-")}</td>
             <td>${escapeHtml(doc.sizeLabel || "-")}</td>
             <td>${escapeHtml(new Date(doc.uploadedAt || new Date().toISOString()).toLocaleString("en-US"))}</td>
-            <td><button class="btn btn-danger" type="button" data-delete-project-doc="${doc.id}">حذف</button></td>
+            <td>
+              <div class="row" style="gap:6px;justify-content:flex-start">
+                <button class="btn btn-secondary" type="button" data-view-project-doc="${doc.id}">عرض</button>
+                <button class="btn btn-danger" type="button" data-delete-project-doc="${doc.id}">حذف</button>
+              </div>
+            </td>
           </tr>
         `,
       )
@@ -631,7 +636,12 @@ function renderProjectTabContent(project, summary) {
           <td>${escapeHtml(sc.unit)}</td>
           <td>${formatMoney(sc.unitPrice)}</td>
           <td>${formatMoney(sc.total)}</td>
-          <td><button class="btn btn-danger" data-delete-subcontract="${sc.id}">حذف</button></td>
+          <td>
+            <div class="row" style="gap:6px;justify-content:flex-start">
+              <button class="btn btn-secondary" data-edit-subcontract="${sc.id}">تعديل الكمية</button>
+              <button class="btn btn-danger" data-delete-subcontract="${sc.id}">حذف</button>
+            </div>
+          </td>
         </tr>
       `,
       )
@@ -663,6 +673,22 @@ function renderProjectTabContent(project, summary) {
           <p class="muted" id="subcontract-remaining-hint"></p>
           <button class="btn btn-primary" type="submit">إضافة</button>
         </form>
+          </div>
+        </div>
+        <div class="modal-backdrop hidden" id="edit-subcontract-modal">
+          <div class="modal" style="max-width:520px">
+            <div class="row">
+              <h3 class="card-title">تعديل كمية مقاول الباطن</h3>
+              <button class="btn btn-secondary" type="button" data-close-modal="edit-subcontract-modal">إغلاق</button>
+            </div>
+            <form id="edit-subcontract-form" class="form-grid">
+              <input type="hidden" name="subcontractId" />
+              <div class="field"><label>المقاول</label><input class="input" name="contractorName" readonly /></div>
+              <div class="field"><label>المقايسة</label><input class="input" name="boqName" readonly /></div>
+              <div class="field"><label>الكمية</label><input class="input" type="number" min="0" step="0.01" name="qty" required /></div>
+              <p class="muted" id="edit-subcontract-hint"></p>
+              <button class="btn btn-primary" type="submit">حفظ التعديل</button>
+            </form>
           </div>
         </div>
         ${project.subcontractors.length ? `
@@ -2040,7 +2066,7 @@ function bindProjectCreateForm() {
     });
   });
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
 
@@ -2050,7 +2076,7 @@ function bindProjectCreateForm() {
     const documentFiles = fd
       .getAll("documents")
       .filter((f) => f && typeof f === "object" && typeof f.name === "string" && f.name)
-      .map((f) => mapFileToProjectDocument(f));
+      ;
 
     if (!name || !startDate) {
       showAppPopup("اسم المشروع وتاريخ البداية مطلوبان");
@@ -2059,13 +2085,15 @@ function bindProjectCreateForm() {
 
     const customFields = projectDraft.customFields.filter((f) => String(f.key || "").trim());
 
+    const mappedDocuments = await Promise.all(documentFiles.map((f) => mapFileToProjectDocument(f)));
+
     state.projects.push({
       id: crypto.randomUUID(),
       name,
       startDate,
       createdAt: new Date().toISOString(),
       type,
-      documents: documentFiles,
+      documents: mappedDocuments,
       customFields,
       boq: structuredClone(projectDraft.boq),
       expenses: {
@@ -2135,6 +2163,7 @@ function bindProjectDetailActions(project) {
   bindProjectEquipmentsForm(project);
   bindProjectWorkersForm(project);
   bindProjectDocumentsForm(project);
+  bindEditSubcontractForm(project);
 
   document.querySelectorAll("[data-delete-petty]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -2222,12 +2251,49 @@ function bindProjectDetailActions(project) {
       render();
     });
   });
+
+  document.querySelectorAll("[data-view-project-doc]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const doc = (project.documents || []).find((d) => d.id === btn.dataset.viewProjectDoc);
+      if (!doc) return;
+      openProjectDocumentPreview(doc);
+    });
+  });
+
+  document.querySelectorAll("[data-edit-subcontract]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const subcontract = project.subcontractors.find((x) => x.id === btn.dataset.editSubcontract);
+      if (!subcontract) return;
+      const boq = getBoqItem(project, subcontract.boqId);
+      const modal = document.getElementById("edit-subcontract-modal");
+      const form = document.getElementById("edit-subcontract-form");
+      if (!modal || !form || !boq) return;
+
+      const assignedExcludingCurrent = getSubcontractAssignedQtyForBoq(project, subcontract.boqId, subcontract.id);
+      const selfExecuted = getSelfExecutedQtyForBoq(project, subcontract.boqId);
+      const maxAllowed = Math.max(Number(boq.qty || 0) - assignedExcludingCurrent - selfExecuted, 0);
+      const minAllowed = Number(subcontract.executedQty || 0);
+      const safeMax = Math.max(maxAllowed, minAllowed);
+      const qtyInput = form.querySelector("[name='qty']");
+      qtyInput.max = String(safeMax);
+      qtyInput.min = String(minAllowed);
+
+      form.querySelector("[name='subcontractId']").value = subcontract.id;
+      form.querySelector("[name='contractorName']").value = subcontract.contractorName || "-";
+      form.querySelector("[name='boqName']").value = boq.itemName || "-";
+      form.querySelector("[name='qty']").value = String(Number(subcontract.qty || 0));
+      document.getElementById("edit-subcontract-hint").textContent =
+        `أقصى كمية متاحة: ${num(safeMax)} | منفذ فعلياً لهذا المقاول: ${num(subcontract.executedQty || 0)}`;
+
+      modal.classList.remove("hidden");
+    });
+  });
 }
 
 function bindProjectDocumentsForm(project) {
   const form = document.getElementById("add-project-documents-form");
   if (!form) return;
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
     const files = fd
@@ -2238,10 +2304,58 @@ function bindProjectDocumentsForm(project) {
       return;
     }
     project.documents = project.documents || [];
-    files.forEach((file) => {
-      project.documents.push(mapFileToProjectDocument(file));
-    });
+    const mappedFiles = await Promise.all(files.map((file) => mapFileToProjectDocument(file)));
+    mappedFiles.forEach((doc) => project.documents.push(doc));
     addAdminNotification("رفع مستندات مشروع", `تم رفع ${files.length} مستند/مستندات على مشروع: ${project.name}`);
+    saveState();
+    render();
+  });
+}
+
+function bindEditSubcontractForm(project) {
+  const form = document.getElementById("edit-subcontract-form");
+  const modal = document.getElementById("edit-subcontract-modal");
+  if (!form || !modal) return;
+  const qtyInput = form.querySelector("[name='qty']");
+
+  qtyInput.addEventListener("input", () => {
+    const max = Number(qtyInput.max || 0);
+    const min = Number(qtyInput.min || 0);
+    const current = Number(qtyInput.value || 0);
+    if (!Number.isFinite(current)) return;
+    if (current > max) qtyInput.value = String(max);
+    if (current < min) qtyInput.value = String(min);
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const subcontractId = String(fd.get("subcontractId") || "");
+    const qty = Number(fd.get("qty") || 0);
+    const subcontract = project.subcontractors.find((x) => x.id === subcontractId);
+    if (!subcontract) return;
+    const boq = getBoqItem(project, subcontract.boqId);
+    if (!boq) return;
+
+    const assignedExcludingCurrent = getSubcontractAssignedQtyForBoq(project, subcontract.boqId, subcontract.id);
+    const selfExecuted = getSelfExecutedQtyForBoq(project, subcontract.boqId);
+    const maxAllowed = Math.max(Number(boq.qty || 0) - assignedExcludingCurrent - selfExecuted, 0);
+    const minAllowed = Number(subcontract.executedQty || 0);
+    const safeMax = Math.max(maxAllowed, minAllowed);
+
+    if (qty < minAllowed) {
+      showAppPopup(`لا يمكن جعل الكمية أقل من المنفذ الفعلي (${minAllowed.toFixed(2)})`);
+      return;
+    }
+    if (qty > safeMax) {
+      showAppPopup(`الكمية المعدلة تتجاوز المتاح للبند (${safeMax.toFixed(2)})`);
+      return;
+    }
+
+    subcontract.qty = qty;
+    subcontract.total = Number(subcontract.unitPrice || 0) * qty;
+    addAdminNotification("تعديل كمية مقاول باطن", `تم تعديل كمية مقاول (${subcontract.contractorName}) في مشروع ${project.name}`);
+    modal.classList.add("hidden");
     saveState();
     render();
   });
@@ -2914,6 +3028,8 @@ function normalizeProjectData(project) {
     name: String(doc.name || "").trim(),
     type: String(doc.type || detectFileTypeFromName(doc.name || "") || "-"),
     sizeLabel: String(doc.sizeLabel || "-"),
+    mimeType: String(doc.mimeType || detectMimeTypeFromName(doc.name || "")),
+    dataUrl: typeof doc.dataUrl === "string" ? doc.dataUrl : "",
     uploadedAt: doc.uploadedAt || normalized.createdAt || new Date().toISOString(),
   }));
   delete normalized.documentName;
@@ -2923,12 +3039,23 @@ function normalizeProjectData(project) {
   return normalized;
 }
 
-function mapFileToProjectDocument(file) {
+async function mapFileToProjectDocument(file) {
   const safeName = String(file?.name || "").trim();
+  const mimeType = String(file?.type || detectMimeTypeFromName(safeName));
+  let dataUrl = "";
+  if (mimeType.startsWith("image/") || mimeType === "application/pdf") {
+    try {
+      dataUrl = await readFileAsDataURL(file);
+    } catch {
+      dataUrl = "";
+    }
+  }
   return {
     id: crypto.randomUUID(),
     name: safeName,
     type: detectFileTypeFromName(safeName),
+    mimeType,
+    dataUrl,
     sizeLabel: file?.size ? `${new Intl.NumberFormat("en-US").format(Number(file.size))} B` : "-",
     uploadedAt: new Date().toISOString(),
   };
@@ -2940,6 +3067,64 @@ function detectFileTypeFromName(name) {
   if (ext === "doc" || ext === "docx") return "Word";
   if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) return "Image";
   return ext ? ext.toUpperCase() : "-";
+}
+
+function detectMimeTypeFromName(name) {
+  const ext = String(name || "").toLowerCase().split(".").pop() || "";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "doc") return "application/msword";
+  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (ext === "png") return "image/png";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  if (ext === "svg") return "image/svg+xml";
+  return "";
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("file-read-error"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function openProjectDocumentPreview(doc) {
+  const id = "project-document-preview-modal";
+  document.getElementById(id)?.remove();
+
+  const mimeType = String(doc.mimeType || "");
+  const dataUrl = String(doc.dataUrl || "");
+  let bodyHtml = "";
+
+  if (mimeType.startsWith("image/") && dataUrl) {
+    bodyHtml = `<img src="${dataUrl}" alt="${escapeHtml(doc.name || "doc")}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:10px;border:1px solid var(--border)" />`;
+  } else if (mimeType === "application/pdf" && dataUrl) {
+    bodyHtml = `<iframe src="${dataUrl}" title="${escapeHtml(doc.name || "pdf")}" style="width:100%;height:70vh;border:1px solid var(--border);border-radius:10px"></iframe>`;
+  } else {
+    bodyHtml = `<div class="empty">لا تتوفر معاينة مباشرة لهذا النوع من الملفات حالياً</div>`;
+  }
+
+  const modal = document.createElement("div");
+  modal.id = id;
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal" style="max-width:980px">
+      <div class="row">
+        <h3 class="card-title">${escapeHtml(doc.name || "معاينة مستند")}</h3>
+        <button class="btn btn-secondary" type="button" id="close-project-document-preview">إغلاق</button>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  modal.querySelector("#close-project-document-preview")?.addEventListener("click", close);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) close();
+  });
 }
 
 function getRentalNet(item, faults, extras) {
