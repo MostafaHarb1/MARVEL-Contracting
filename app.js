@@ -419,18 +419,7 @@ function renderProjectsSection(root) {
       </div>
     </section>
 
-    ${renderProjectTabContent(project)}
-
-    <section class="section-card">
-      <h3 class="card-title">الملخص المالي للمشروع</h3>
-      <div class="summary-cards">
-        <article class="summary-card"><h4>إجمالي مقاولو الباطن</h4><p>${formatMoney(summary.totalSubcontractors)} (${summary.subcontractValuePercent.toFixed(1)}%)</p></article>
-        <article class="summary-card"><h4>إجمالي التشغيل الذاتي</h4><p>${formatMoney(summary.selfExecution)} (${summary.selfExecutionValuePercent.toFixed(1)}%)</p></article>
-        <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(summary.totalExpenses)}</p></article>
-        <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)}</p></article>
-        <article class="summary-card"><h4>كمية مقاولي الباطن</h4><p>${num(summary.qtyStats.subcontractQty)}</p></article>
-      </div>
-    </section>
+    ${renderProjectTabContent(project, summary)}
   `;
 
   document.getElementById("back-project-list").addEventListener("click", () => {
@@ -456,7 +445,7 @@ function renderProjectsSection(root) {
   bindProjectDetailActions(project);
 }
 
-function renderProjectTabContent(project) {
+function renderProjectTabContent(project, summary) {
   if (ui.projectTab === "boq") {
     const rows = project.boq
       .map((item) => {
@@ -509,6 +498,16 @@ function renderProjectTabContent(project) {
             </table>
           </div>` : '<div class="empty">لا توجد مقايسات في هذا المشروع</div>'}
       </section>
+      <section class="section-card">
+        <h3 class="card-title">الملخص المالي للمشروع</h3>
+        <div class="summary-cards">
+          <article class="summary-card"><h4>إجمالي مقاولو الباطن</h4><p>${formatMoney(summary.totalSubcontractors)} (${summary.subcontractValuePercent.toFixed(1)}%)</p></article>
+          <article class="summary-card"><h4>إجمالي التشغيل الذاتي</h4><p>${formatMoney(summary.selfExecution)} (${summary.selfExecutionValuePercent.toFixed(1)}%)</p></article>
+          <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(summary.totalExpenses)}</p></article>
+          <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)}</p></article>
+          <article class="summary-card"><h4>كمية مقاولي الباطن</h4><p>${num(summary.qtyStats.subcontractQty)}</p></article>
+        </div>
+      </section>
     `;
   }
 
@@ -540,11 +539,6 @@ function renderProjectTabContent(project) {
           <h3 class="card-title">مقاولو الباطن</h3>
           <button class="btn btn-primary" type="button" data-open-modal="subcontract-modal">إضافة مقاول باطن</button>
         </div>
-        <div class="summary-cards" style="margin-bottom:12px">
-          <article class="summary-card"><h4>إجمالي وحدات المشروع</h4><p>${num(qtyStats.totalQty)}</p></article>
-          <article class="summary-card"><h4>وحدات مقاولي الباطن</h4><p>${num(qtyStats.subcontractQty)} (${qtyStats.subcontractPercent.toFixed(1)}%)</p></article>
-          <article class="summary-card"><h4>التشغيل الذاتي</h4><p>${num(qtyStats.selfQty)} (${qtyStats.selfPercent.toFixed(1)}%)</p></article>
-        </div>
         <div class="modal-backdrop hidden" id="subcontract-modal">
           <div class="modal">
             <div class="row">
@@ -570,6 +564,11 @@ function renderProjectTabContent(project) {
         ${project.subcontractors.length ? `
           <div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>المقايسة</th><th>المقاول</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>إجراء</th></tr></thead><tbody>${rows}</tbody></table></div>
         ` : '<div class="empty" style="margin-top:12px">لا يوجد مقاولو باطن</div>'}
+        <div class="summary-cards" style="margin-top:12px">
+          <article class="summary-card"><h4>إجمالي وحدات المشروع</h4><p>${num(qtyStats.totalQty)}</p></article>
+          <article class="summary-card"><h4>وحدات مقاولي الباطن</h4><p>${num(qtyStats.subcontractQty)} (${qtyStats.subcontractPercent.toFixed(1)}%)</p></article>
+          <article class="summary-card"><h4>التشغيل الذاتي</h4><p>${num(qtyStats.selfQty)} (${qtyStats.selfPercent.toFixed(1)}%)</p></article>
+        </div>
       </section>
     `;
   }
@@ -641,19 +640,20 @@ function renderExpensesTab(project) {
         ${tabButton("salary", "المرتبات", ui.expenseTab)}
       </div>
     </section>
+    ${ui.expenseTab === "petty" ? pettyExpensesTemplate(project) : ""}
+    ${ui.expenseTab === "operation" ? operationExpensesTemplate(project) : ""}
+    ${ui.expenseTab === "rental" ? rentalExpensesTemplate(project) : ""}
+    ${ui.expenseTab === "salary" ? salaryTemplate(project) : ""}
+    ${ui.expenseTab === "petty" || ui.expenseTab === "operation" ? `
     <section class="section-card">
-      <h3 class="card-title">ملخص المصروفات (بدون المرتبات)</h3>
+      <h3 class="card-title">ملخص المصروفات</h3>
       <div class="summary-cards">
         <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(expensesTotal)}</p></article>
         <article class="summary-card"><h4>إجمالي مصاريف التشغيل</h4><p>${formatMoney(operationTotal)}</p></article>
         <article class="summary-card"><h4>إجمالي المصروفات النثرية</h4><p>${formatMoney(pettyTotal)}</p></article>
         <article class="summary-card"><h4>إجمالي إيجار المعدات</h4><p>${formatMoney(rentalTotal)}</p></article>
       </div>
-    </section>
-    ${ui.expenseTab === "petty" ? pettyExpensesTemplate(project) : ""}
-    ${ui.expenseTab === "operation" ? operationExpensesTemplate(project) : ""}
-    ${ui.expenseTab === "rental" ? rentalExpensesTemplate(project) : ""}
-    ${ui.expenseTab === "salary" ? salaryTemplate(project) : ""}
+    </section>` : ""}
   `;
 }
 
