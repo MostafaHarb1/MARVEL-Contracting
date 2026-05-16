@@ -325,44 +325,37 @@ function renderProjectsSection(root) {
         const qtyWithUnit = getProjectTotalQtyWithUnit(project);
         return `
           <article class="project-card ${progress >= 100 ? "done" : ""}" data-open-project="${project.id}">
-            <div class="project-card-top">
-              <div class="project-card-icon-block">${projectBuildingIcon()}</div>
-              <div class="project-card-head">
-                <div class="project-card-title-wrap">
-                  <strong class="project-card-title">${escapeHtml(project.name)}</strong>
-                  <span class="badge ${progress >= 100 ? "done" : "running"}"><b class="status-dot"></b>${status}</span>
-                </div>
-                <div class="project-card-menu">
-                  <button type="button" class="project-menu-trigger" data-project-menu-toggle="${project.id}" aria-label="خيارات المشروع">${outlineMoreIcon()}</button>
-                  <div class="project-menu-dropdown ${ui.openProjectMenuId === project.id ? "open" : ""}">
-                    <button type="button" data-project-menu-action="addBoq" data-project-id="${project.id}">إضافة مقايسة</button>
-                    <button type="button" data-project-menu-action="delete" data-project-id="${project.id}" class="danger">حذف المشروع</button>
-                  </div>
+            <div class="project-card-head">
+              <div class="project-card-title-wrap">
+                <strong class="project-card-title">${escapeHtml(project.name)}</strong>
+                <span class="badge ${progress >= 100 ? "done" : "running"}"><b class="status-dot"></b>${status}</span>
+              </div>
+              <div class="project-card-menu">
+                <button type="button" class="project-menu-trigger" data-project-menu-toggle="${project.id}" aria-label="خيارات المشروع">${outlineMoreIcon()}</button>
+                <div class="project-menu-dropdown ${ui.openProjectMenuId === project.id ? "open" : ""}">
+                  <button type="button" data-project-menu-action="addBoq" data-project-id="${project.id}">إضافة مقايسة</button>
+                  <button type="button" data-project-menu-action="delete" data-project-id="${project.id}" class="danger">حذف المشروع</button>
                 </div>
               </div>
             </div>
             <div class="project-meta-grid">
-              <div class="project-meta-item">${infoIcon("calendar")}<div><small>تاريخ البداية</small><strong>${escapeHtml(project.startDate || "-")}</strong></div></div>
-              <div class="project-meta-item">${infoIcon("items")}<div><small>عدد البنود</small><strong>${project.boq.length} بند</strong></div></div>
-              <div class="project-meta-item">${infoIcon("qty")}<div><small>إجمالي الكمية</small><strong>${qtyWithUnit}</strong></div></div>
+              <div class="project-meta-item">${infoIcon("calendar")}<span>${escapeHtml(project.startDate || "-")}</span></div>
+              <div class="project-meta-item">${infoIcon("items")}<span>${project.boq.length} بند</span></div>
+              <div class="project-meta-item">${infoIcon("qty")}<span>${qtyWithUnit}</span></div>
             </div>
-            <div class="split-progress-panel">
-              <div class="split-progress">
-                <div class="split-col">
-                  <div class="split-row"><span>تنفيذ ذاتي</span><strong>${qtyStats.selfPercent.toFixed(1)}%</strong></div>
-                  <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
-                </div>
-                <div class="split-col">
-                  <div class="split-row"><span>مقاولو الباطن</span><strong>${qtyStats.subcontractPercent.toFixed(1)}%</strong></div>
-                  <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
-                </div>
+            <div class="split-progress">
+              <div class="split-col">
+                <div class="split-row"><span>تنفيذ ذاتي</span><strong>${qtyStats.selfPercent.toFixed(1)}%</strong></div>
+                <div class="split-bar-track"><span class="split-bar-self" style="width:${Math.max(0, Math.min(100, qtyStats.selfPercent)).toFixed(1)}%"></span></div>
+              </div>
+              <div class="split-col">
+                <div class="split-row"><span>مقاولو الباطن</span><strong>${qtyStats.subcontractPercent.toFixed(1)}%</strong></div>
+                <div class="split-bar-track"><span class="split-bar-sub" style="width:${Math.max(0, Math.min(100, qtyStats.subcontractPercent)).toFixed(1)}%"></span></div>
               </div>
             </div>
             <div class="project-overall-progress">
-              <div class="project-overall-head">
-                <span>نسبة الإكمال الكلية</span>
-                <div class="project-overall-value">${progress.toFixed(1)}% ${trendIcon()}</div>
-              </div>
+              <span class="project-overall-label">نسبة الإكمال الكلية</span>
+              <div class="project-overall-value">${progress.toFixed(1)}% ${trendIcon()}</div>
               <div class="project-overall-track">
                 <span class="project-overall-fill" style="width:${progress.toFixed(1)}%"></span>
               </div>
@@ -486,6 +479,7 @@ function renderProjectsSection(root) {
     <section class="section-card project-tabs-card">
       <div class="tabs" id="project-tabs">
         ${tabButton("boq", "المقايسات", ui.projectTab)}
+        ${tabButton("documents", "مستندات المشروع", ui.projectTab)}
         ${tabButton("expenses", "المصروفات", ui.projectTab)}
         ${tabButton("subcontract", "مقاولو الباطن", ui.projectTab)}
         ${tabButton("projectEquipment", "معدات الشركة داخل المشروع", ui.projectTab)}
@@ -584,6 +578,39 @@ function renderProjectTabContent(project, summary) {
           <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)}</p></article>
           <article class="summary-card"><h4>كمية مقاولي الباطن</h4><p>${num(summary.qtyStats.subcontractQty)}</p></article>
         </div>
+      </section>
+    `;
+  }
+
+  if (ui.projectTab === "documents") {
+    const docsRows = (project.documents || [])
+      .map(
+        (doc) => `
+          <tr>
+            <td>${escapeHtml(doc.name || "-")}</td>
+            <td>${escapeHtml(doc.type || "-")}</td>
+            <td>${escapeHtml(doc.sizeLabel || "-")}</td>
+            <td>${escapeHtml(new Date(doc.uploadedAt || new Date().toISOString()).toLocaleString("en-US"))}</td>
+            <td><button class="btn btn-danger" type="button" data-delete-project-doc="${doc.id}">حذف</button></td>
+          </tr>
+        `,
+      )
+      .join("");
+    return `
+      <section class="section-card">
+        <div class="row">
+          <h3 class="card-title">مستندات المشروع</h3>
+        </div>
+        <form id="add-project-documents-form" class="form-grid" style="margin-top:10px">
+          <div class="field">
+            <label>رفع مستندات المشروع (PDF / Word / صورة)</label>
+            <input class="input" type="file" name="documents" accept=".pdf,.doc,.docx,image/*" multiple />
+          </div>
+          <button class="btn btn-primary" type="submit">رفع المستندات</button>
+        </form>
+        ${(project.documents || []).length
+          ? `<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>اسم الملف</th><th>النوع</th><th>الحجم</th><th>تاريخ الرفع</th><th>إجراء</th></tr></thead><tbody>${docsRows}</tbody></table></div>`
+          : '<div class="empty" style="margin-top:16px">لا توجد مستندات مرفوعة لهذا المشروع</div>'}
       </section>
     `;
   }
@@ -2020,15 +2047,13 @@ function bindProjectCreateForm() {
     const name = String(fd.get("name") || "").trim();
     const startDate = String(fd.get("startDate") || "").trim();
     const type = String(fd.get("type") || "طرق").trim() || "طرق";
-    const documentFile = fd.get("document");
+    const documentFiles = fd
+      .getAll("documents")
+      .filter((f) => f && typeof f === "object" && typeof f.name === "string" && f.name)
+      .map((f) => mapFileToProjectDocument(f));
 
     if (!name || !startDate) {
       showAppPopup("اسم المشروع وتاريخ البداية مطلوبان");
-      return;
-    }
-
-    if (!projectDraft.boq.length) {
-      showAppPopup("يجب إضافة بند مقايسة واحد على الأقل");
       return;
     }
 
@@ -2040,7 +2065,7 @@ function bindProjectCreateForm() {
       startDate,
       createdAt: new Date().toISOString(),
       type,
-      documentName: documentFile && typeof documentFile === "object" ? documentFile.name : "",
+      documents: documentFiles,
       customFields,
       boq: structuredClone(projectDraft.boq),
       expenses: {
@@ -2109,6 +2134,7 @@ function bindProjectDetailActions(project) {
   bindSalaryForm(project);
   bindProjectEquipmentsForm(project);
   bindProjectWorkersForm(project);
+  bindProjectDocumentsForm(project);
 
   document.querySelectorAll("[data-delete-petty]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -2185,6 +2211,39 @@ function bindProjectDetailActions(project) {
       saveState();
       render();
     });
+  });
+
+  document.querySelectorAll("[data-delete-project-doc]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm("حذف هذا المستند؟")) return;
+      const id = btn.dataset.deleteProjectDoc;
+      project.documents = (project.documents || []).filter((d) => d.id !== id);
+      saveState();
+      render();
+    });
+  });
+}
+
+function bindProjectDocumentsForm(project) {
+  const form = document.getElementById("add-project-documents-form");
+  if (!form) return;
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const files = fd
+      .getAll("documents")
+      .filter((f) => f && typeof f === "object" && typeof f.name === "string" && f.name);
+    if (!files.length) {
+      showAppPopup("اختر مستنداً واحداً على الأقل");
+      return;
+    }
+    project.documents = project.documents || [];
+    files.forEach((file) => {
+      project.documents.push(mapFileToProjectDocument(file));
+    });
+    addAdminNotification("رفع مستندات مشروع", `تم رفع ${files.length} مستند/مستندات على مشروع: ${project.name}`);
+    saveState();
+    render();
   });
 }
 
@@ -2839,10 +2898,48 @@ function normalizeProjectData(project) {
     salary: { deductions: [] },
   };
   normalized.companyEquipments = normalized.companyEquipments || [];
+  const legacyDocuments = normalized.documentName
+    ? [
+      {
+        id: crypto.randomUUID(),
+        name: normalized.documentName,
+        type: detectFileTypeFromName(normalized.documentName),
+        sizeLabel: "-",
+        uploadedAt: normalized.createdAt || new Date().toISOString(),
+      },
+    ]
+    : [];
+  normalized.documents = (normalized.documents || legacyDocuments).map((doc) => ({
+    id: doc.id || crypto.randomUUID(),
+    name: String(doc.name || "").trim(),
+    type: String(doc.type || detectFileTypeFromName(doc.name || "") || "-"),
+    sizeLabel: String(doc.sizeLabel || "-"),
+    uploadedAt: doc.uploadedAt || normalized.createdAt || new Date().toISOString(),
+  }));
+  delete normalized.documentName;
   normalized.assignedWorkerIds = Array.isArray(normalized.assignedWorkerIds)
     ? normalized.assignedWorkerIds.filter((id) => state.workers.some((w) => w.id === id))
     : [];
   return normalized;
+}
+
+function mapFileToProjectDocument(file) {
+  const safeName = String(file?.name || "").trim();
+  return {
+    id: crypto.randomUUID(),
+    name: safeName,
+    type: detectFileTypeFromName(safeName),
+    sizeLabel: file?.size ? `${new Intl.NumberFormat("en-US").format(Number(file.size))} B` : "-",
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
+function detectFileTypeFromName(name) {
+  const ext = String(name || "").toLowerCase().split(".").pop() || "";
+  if (ext === "pdf") return "PDF";
+  if (ext === "doc" || ext === "docx") return "Word";
+  if (["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext)) return "Image";
+  return ext ? ext.toUpperCase() : "-";
 }
 
 function getRentalNet(item, faults, extras) {
@@ -3196,7 +3293,7 @@ function projectCreateFormTemplate(inModal = false) {
           <div class="field"><label>اسم المشروع</label><input class="input" name="name" value="${escapeHtml(projectDraft.name || "")}" required /></div>
           <div class="field"><label>تاريخ البداية</label><input class="input" type="date" name="startDate" value="${escapeHtml(projectDraft.startDate || "")}" required /></div>
           <div class="field"><label>نوع المشروع</label><input class="input" name="type" value="${escapeHtml(projectDraft.type || "طرق")}" required /></div>
-          <div class="field" style="grid-column:1/-1"><label>مستند المشروع (PDF / Word / صورة)</label><input class="input" type="file" name="document" accept=".pdf,.doc,.docx,image/*" /></div>
+          <div class="field" style="grid-column:1/-1"><label>مستندات المشروع (PDF / Word / صورة)</label><input class="input" type="file" name="documents" accept=".pdf,.doc,.docx,image/*" multiple /></div>
         </div>
 
         <div class="section-card" style="margin:0">
