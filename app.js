@@ -355,7 +355,7 @@ function renderProjectsSection(root) {
             </div>
             <div class="project-overall-progress">
               <span class="project-overall-label">نسبة الإكمال الكلية</span>
-              <div class="project-overall-value">${progress.toFixed(1)}% ${trendIcon()}</div>
+              <div class="project-overall-value">${progress.toFixed(1)}%</div>
               <div class="project-overall-track">
                 <span class="project-overall-fill" style="width:${progress.toFixed(1)}%"></span>
               </div>

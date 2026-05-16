@@ -386,7 +386,8 @@ textarea {
   border-radius: 18px;
   padding: 14px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  grid-template-rows: auto auto auto 1fr;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   height: 250px;
@@ -405,24 +406,25 @@ textarea {
 .project-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  border-bottom: 1px solid #e8eef6;
-  padding-bottom: 12px;
+  padding-bottom: 2px;
+  min-width: 0;
 }
 
 .project-card-title-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: 1 1 auto;
 }
 
 .project-card-title {
-  font-size: 0.99rem;
+  font-size: 0.96rem;
   color: #102c4d;
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: normal;
   overflow: hidden;
   text-overflow: clip;
@@ -439,9 +441,10 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  padding: 0 0 12px;
-  border-bottom: 1px solid #e8eef6;
-  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid #e9eff7;
+  border-radius: 10px;
+  background: #f9fcff;
 }
 
 .project-meta-item {
@@ -460,7 +463,7 @@ textarea {
 }
 
 .project-meta-item span {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: #24374c;
   white-space: nowrap;
   overflow: hidden;
@@ -470,10 +473,11 @@ textarea {
 .split-progress {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  border-bottom: 1px solid #e8eef6;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e9eff7;
+  border-radius: 10px;
+  background: #f9fcff;
 }
 
 .split-row {
@@ -482,12 +486,14 @@ textarea {
   align-items: center;
   gap: 6px;
   color: #4f6177;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  min-width: 0;
 }
 
 .split-row strong {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .split-col:first-child .split-row strong {
@@ -527,32 +533,44 @@ textarea {
 }
 
 .project-overall-progress {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "label value"
+    "track track";
+  row-gap: 8px;
+  column-gap: 8px;
+  margin-top: auto;
+  min-width: 0;
 }
 
 .project-overall-label {
+  grid-area: label;
   color: #4f6177;
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-overall-value {
+  grid-area: value;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   color: var(--primary-2);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .project-overall-track {
-  flex: 1 1 auto;
-  min-width: 90px;
-  height: 12px;
+  grid-area: track;
+  width: 100%;
+  min-width: 0;
+  height: 10px;
   border-radius: 999px;
   background: #dbe7f6;
   overflow: hidden;
@@ -1094,10 +1112,12 @@ th {
   .project-meta-grid {
     grid-template-columns: 1fr;
     gap: 8px;
+    padding: 8px 10px;
   }
 
   .split-progress {
     grid-template-columns: 1fr;
+    padding: 8px 10px;
   }
 
   .split-col + .split-col {
@@ -1111,26 +1131,11 @@ th {
     overflow: visible;
     padding: 14px;
     gap: 14px;
+    grid-template-rows: auto auto auto auto;
   }
 
   .project-overall-progress {
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px 10px;
-    margin-top: 12px;
-  }
-
-  .project-overall-label,
-  .project-overall-value {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .project-overall-track {
-    flex: 0 0 100%;
-    width: 100%;
-    min-width: 0;
+    margin-top: 0;
   }
 
   .projects-list-header {
