@@ -310,14 +310,15 @@ function renderDashboard() {
 }
 
 function renderProjectsSection(root) {
+  const activeProjects = getActiveProjects();
   if (!ui.selectedProjectId) {
-    const totalProjects = state.projects.length;
-    const runningProjects = state.projects.filter((p) => getProjectCompletion(p) < 100).length;
+    const totalProjects = activeProjects.length;
+    const runningProjects = activeProjects.filter((p) => getProjectCompletion(p) < 100).length;
     const avgCompletion = totalProjects
-      ? state.projects.reduce((sum, p) => sum + getProjectCompletion(p), 0) / totalProjects
+      ? activeProjects.reduce((sum, p) => sum + getProjectCompletion(p), 0) / totalProjects
       : 0;
 
-    const cards = state.projects
+    const cards = activeProjects
       .map((project) => {
         const progress = Math.max(0, Math.min(100, getProjectCompletion(project)));
         const status = progress >= 100 ? "مكتمل" : "قيد التنفيذ";
@@ -378,7 +379,7 @@ function renderProjectsSection(root) {
           <h3 class="card-title">قائمة المشاريع</h3>
           <button class="btn btn-primary" id="open-project-modal">إضافة مشروع</button>
         </div>
-        ${state.projects.length ? `<div class="project-grid">${cards}</div>` : '<div class="empty">لا توجد مشاريع حالياً</div>'}
+        ${activeProjects.length ? `<div class="project-grid">${cards}</div>` : '<div class="empty">لا توجد مشاريع حالياً</div>'}
       </section>
       ${ui.showProjectForm ? projectCreateFormTemplate(true) : ""}
     `;
@@ -414,12 +415,12 @@ function renderProjectsSection(root) {
         e.stopPropagation();
         const action = btn.dataset.projectMenuAction;
         const projectId = btn.dataset.projectId;
-        const project = state.projects.find((p) => p.id === projectId);
+        const project = activeProjects.find((p) => p.id === projectId);
         if (!project) return;
         ui.openProjectMenuId = null;
         if (action === "delete") {
           if (!confirm("هل أنت متأكد من حذف المشروع؟")) return;
-          state.projects = state.projects.filter((p) => p.id !== projectId);
+          softDeleteProjectById(projectId);
           saveState();
           render();
           return;
@@ -457,7 +458,7 @@ function renderProjectsSection(root) {
   }
 
   const project = state.projects.find((p) => p.id === ui.selectedProjectId);
-  if (!project) {
+  if (!project || project.isDeleted) {
     ui.selectedProjectId = null;
     render();
     return;
@@ -500,7 +501,7 @@ function renderProjectsSection(root) {
   });
   document.getElementById("delete-project-inside").addEventListener("click", () => {
     if (!confirm("هل أنت متأكد من حذف المشروع؟")) return;
-    state.projects = state.projects.filter((p) => p.id !== project.id);
+    softDeleteProjectById(project.id);
     ui.selectedProjectId = null;
     saveState();
     render();
@@ -1137,7 +1138,8 @@ function salaryTemplate(project) {
 }
 
 function renderExecutionSection(root) {
-  const flatBoq = state.projects.flatMap((project) =>
+  const activeProjects = getActiveProjects();
+  const flatBoq = activeProjects.flatMap((project) =>
     project.boq.map((item) => ({
       project,
       item,
@@ -1145,7 +1147,7 @@ function renderExecutionSection(root) {
     })),
   );
 
-  const optionsProjects = state.projects
+  const optionsProjects = activeProjects
     .map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
     .join("");
 
@@ -1251,7 +1253,7 @@ function renderExecutionSection(root) {
   const remainingHint = document.getElementById("execution-remaining-hint");
 
   const refreshExecutionSelectors = () => {
-    const project = state.projects.find((p) => p.id === projectSelect.value);
+    const project = activeProjects.find((p) => p.id === projectSelect.value);
     boqSelect.innerHTML = `<option value="">اختر المقايسة</option>${(project?.boq || [])
       .map((b) => `<option value="${b.id}">${escapeHtml(b.itemName)}</option>`)
       .join("")}`;
@@ -1260,7 +1262,7 @@ function renderExecutionSection(root) {
   };
 
   const refreshExecutionHint = () => {
-    const project = state.projects.find((p) => p.id === projectSelect.value);
+    const project = activeProjects.find((p) => p.id === projectSelect.value);
     const boq = project?.boq.find((b) => b.id === boqSelect.value);
     const performerType = performerTypeSelect.value;
     if (!project || !boq) {
@@ -1327,7 +1329,7 @@ function renderExecutionSection(root) {
 
     if (!projectId || !boqId || executedQty <= 0) return;
 
-    const project = state.projects.find((p) => p.id === projectId);
+    const project = activeProjects.find((p) => p.id === projectId);
     const boq = project?.boq.find((b) => b.id === boqId);
     if (!project || !boq) return;
 
@@ -1525,6 +1527,7 @@ function renderEquipmentsSection(root) {
 }
 
 function renderSettingsSection(root) {
+  const deletedProjects = getDeletedProjects();
   const rolesRows = state.roles
     .map(
       (r) => `
@@ -1567,12 +1570,31 @@ function renderSettingsSection(root) {
     )
     .join("");
 
+  const deletedProjectsRows = deletedProjects
+    .map(
+      (p) => `
+      <tr>
+        <td>${escapeHtml(p.name)}</td>
+        <td>${escapeHtml(p.deletedByName || p.deletedById || "-")}</td>
+        <td>${escapeHtml(p.deletedAt ? new Date(p.deletedAt).toLocaleString("en-US") : "-")}</td>
+        <td>
+          <div class="row" style="gap:6px;justify-content:flex-start">
+            <button class="btn btn-secondary" data-restore-project="${p.id}">استرجاع</button>
+            <button class="btn btn-danger" data-permanent-delete-project="${p.id}">حذف نهائي</button>
+          </div>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+
   root.innerHTML = `
     <section class="section-card">
       <div class="tabs settings-tabs" id="settings-tabs">
         ${tabButton("roles", "الأدوار والصلاحيات", ui.settingsTab)}
         ${tabButton("systemUsers", "موظفو النظام", ui.settingsTab)}
         ${tabButton("workers", "موظفو العمل", ui.settingsTab)}
+        ${tabButton("deletedProjects", "المشاريع المحذوفة", ui.settingsTab)}
       </div>
     </section>
 
@@ -1652,6 +1674,17 @@ function renderSettingsSection(root) {
           </div>
         </div>
         ${state.workers.length ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>الاسم</th><th>الوظيفة</th><th>المرتب</th><th>تاريخ البداية</th><th>إجراء</th></tr></thead><tbody>${workersRows}</tbody></table></div>` : '<div class="empty" style="margin-top:12px">لا يوجد موظفون</div>'}
+      </section>
+    ` : ""}
+
+    ${ui.settingsTab === "deletedProjects" ? `
+      <section class="section-card">
+        <div class="row">
+          <h3 class="card-title">المشاريع المحذوفة</h3>
+        </div>
+        ${deletedProjects.length
+          ? `<div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>اسم المشروع</th><th>المحذوف بواسطة</th><th>تاريخ الحذف</th><th>إجراء</th></tr></thead><tbody>${deletedProjectsRows}</tbody></table></div>`
+          : '<div class="empty" style="margin-top:12px">لا توجد مشاريع محذوفة</div>'}
       </section>
     ` : ""}
     <div class="modal-backdrop hidden" id="edit-worker-salary-modal">
@@ -1798,9 +1831,28 @@ function renderSettingsSection(root) {
       render();
     });
   }
+
+  document.querySelectorAll("[data-restore-project]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm("استرجاع هذا المشروع؟")) return;
+      if (!restoreProjectById(btn.dataset.restoreProject)) return;
+      saveState();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-permanent-delete-project]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm("حذف نهائي للمشروع؟ لا يمكن التراجع.")) return;
+      if (!permanentlyDeleteProjectById(btn.dataset.permanentDeleteProject)) return;
+      saveState();
+      render();
+    });
+  });
 }
 
 function renderAccountsSection(root) {
+  const activeProjects = getActiveProjects();
   if (!ui.accountsUnlocked) {
     root.innerHTML = `
       <section class="section-card">
@@ -1859,7 +1911,7 @@ function renderAccountsSection(root) {
           <label>فلتر المشروع</label>
           <select class="select" id="accounts-filter-project">
             <option value="all" ${ui.accountsFilterProjectId === "all" ? "selected" : ""}>كل المشاريع</option>
-            ${state.projects.map((p) => `<option value="${p.id}" ${p.id === ui.accountsFilterProjectId ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
+            ${activeProjects.map((p) => `<option value="${p.id}" ${p.id === ui.accountsFilterProjectId ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
           </select>
         </div>
       </div>
@@ -2092,6 +2144,10 @@ function bindProjectCreateForm() {
       name,
       startDate,
       createdAt: new Date().toISOString(),
+      isDeleted: false,
+      deletedById: null,
+      deletedByName: "",
+      deletedAt: null,
       type,
       documents: mappedDocuments,
       customFields,
@@ -2773,7 +2829,7 @@ function bindProjectEquipmentsForm(project) {
 }
 
 function getGeneralReports(filters = {}) {
-  const filteredProjects = state.projects.filter((project) => {
+  const filteredProjects = getActiveProjects().filter((project) => {
     if (filters.projectId && filters.projectId !== "all" && project.id !== filters.projectId) return false;
     const dateValue = project.startDate || project.createdAt || "";
     if (!matchesMonthYear(dateValue, filters.month, filters.year)) return false;
@@ -2877,7 +2933,7 @@ function matchesMonthYear(dateValue, month, year) {
 
 function getAccountsFilterYears() {
   const yearsSet = new Set();
-  state.projects.forEach((p) => {
+  getActiveProjects().forEach((p) => {
     const d = new Date(p.startDate || p.createdAt || "");
     if (!Number.isNaN(d.getTime())) yearsSet.add(d.getFullYear());
   });
@@ -2991,6 +3047,10 @@ function getDeductionsByWorker(project) {
 function normalizeProjectData(project) {
   const normalized = { ...project };
   normalized.createdAt = normalized.createdAt || normalized.startDate || new Date().toISOString();
+  normalized.isDeleted = Boolean(normalized.isDeleted);
+  normalized.deletedById = normalized.deletedById || null;
+  normalized.deletedByName = normalized.deletedByName || "";
+  normalized.deletedAt = normalized.deletedAt || null;
   normalized.boq = (project.boq || []).map((b) => ({
     ...b,
     qty: Number(b.qty || 0),
@@ -3311,6 +3371,54 @@ function titleBySection(section) {
   if (section === "settings") return "الإعدادات";
   if (section === "accounts") return "الحسابات العامة";
   return "لوحة التحكم";
+}
+
+function getActiveProjects() {
+  return state.projects.filter((project) => !project.isDeleted);
+}
+
+function getDeletedProjects() {
+  return state.projects.filter((project) => project.isDeleted);
+}
+
+function getCurrentUserActor() {
+  const user = state.systemUsers.find((u) => u.id === state.session.userId);
+  return {
+    id: user?.id || null,
+    name: user?.name || "مستخدم غير معروف",
+  };
+}
+
+function softDeleteProjectById(projectId) {
+  const project = state.projects.find((p) => p.id === projectId);
+  if (!project) return false;
+  const actor = getCurrentUserActor();
+  project.isDeleted = true;
+  project.deletedById = actor.id;
+  project.deletedByName = actor.name;
+  project.deletedAt = new Date().toISOString();
+  addAdminNotification("حذف مشروع", `تم حذف مشروع (Soft Delete): ${project.name}`);
+  return true;
+}
+
+function restoreProjectById(projectId) {
+  const project = state.projects.find((p) => p.id === projectId);
+  if (!project) return false;
+  project.isDeleted = false;
+  project.deletedById = null;
+  project.deletedByName = "";
+  project.deletedAt = null;
+  addAdminNotification("استعادة مشروع", `تمت استعادة مشروع: ${project.name}`);
+  return true;
+}
+
+function permanentlyDeleteProjectById(projectId) {
+  const project = state.projects.find((p) => p.id === projectId);
+  if (!project) return false;
+  state.projects = state.projects.filter((p) => p.id !== projectId);
+  state.executionLogs = state.executionLogs.filter((log) => log.projectId !== projectId);
+  addAdminNotification("حذف نهائي لمشروع", `تم حذف مشروع نهائياً: ${project.name}`);
+  return true;
 }
 
 function outlineEyeIcon() {
