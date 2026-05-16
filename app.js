@@ -340,7 +340,7 @@ function renderProjectsSection(root) {
             </div>
             <div class="project-meta-grid">
               <div class="project-meta-item">${infoIcon("calendar")}<span>${escapeHtml(project.startDate || "-")}</span></div>
-              <div class="project-meta-item">${infoIcon("items")}<span>${project.boq.length} بند</span></div>
+              <div class="project-meta-item project-meta-item--items">${infoIcon("items")}<span>${project.boq.length} بند</span></div>
             </div>
             <div class="split-progress">
               <div class="split-col">
@@ -461,8 +461,6 @@ function renderProjectsSection(root) {
   }
 
   const summary = getProjectFinancialSummary(project);
-  const projectMetaQty = getProjectTotalQtyWithUnit(project);
-
   root.innerHTML = `
     <section class="section-card project-header-card">
       <div class="row project-header-row">
@@ -470,7 +468,7 @@ function renderProjectsSection(root) {
           <button class="btn btn-secondary icon-action-btn project-back-btn" id="back-project-list" title="العودة لقائمة المشاريع" aria-label="العودة لقائمة المشاريع">${outlineBackArrowIcon()}</button>
           <div class="project-header-title-wrap">
             <h3 class="card-title project-header-title">${escapeHtml(project.name)}</h3>
-            <p class="project-header-meta">البداية: ${escapeHtml(project.startDate || "-")} • إجمالي الوحدات: ${projectMetaQty} • البنود: ${project.boq.length}</p>
+            <p class="project-header-meta">تاريخ البداية: ${escapeHtml(project.startDate || "-")}</p>
           </div>
         </div>
         <button class="btn btn-danger project-delete-btn" id="delete-project-inside">حذف المشروع</button>
@@ -539,7 +537,7 @@ function renderProjectTabContent(project, summary) {
     return `
       <section class="section-card">
         <div class="row boq-header-row">
-          <h3 class="card-title">المقايسات</h3>
+          <h3 class="card-title">المقايسات (${project.boq.length})</h3>
           <button class="btn btn-primary" type="button" data-open-modal="project-boq-modal">إضافة مقايسة</button>
         </div>
         <div class="modal-backdrop ${ui.pendingProjectBoqModalProjectId === project.id ? "" : "hidden"}" id="project-boq-modal">
@@ -576,7 +574,7 @@ function renderProjectTabContent(project, summary) {
           <article class="summary-card"><h4>إجمالي مقاولو الباطن</h4><p>${formatMoney(summary.totalSubcontractors)} (${summary.subcontractValuePercent.toFixed(1)}%)</p></article>
           <article class="summary-card"><h4>إجمالي التشغيل الذاتي</h4><p>${formatMoney(summary.selfExecution)} (${summary.selfExecutionValuePercent.toFixed(1)}%)</p></article>
           <article class="summary-card"><h4>إجمالي المصروفات</h4><p>${formatMoney(summary.totalExpenses)}</p></article>
-          <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)}</p></article>
+          <article class="summary-card"><h4>كمية التشغيل الذاتي</h4><p>${num(summary.qtyStats.selfQty)} ${getProjectPrimaryQtyUnit(project)}</p></article>
           <article class="summary-card"><h4>كمية مقاولي الباطن</h4><p>${num(summary.qtyStats.subcontractQty)}</p></article>
         </div>
       </section>
@@ -3464,6 +3462,13 @@ function getProjectTotalQtyWithUnit(project) {
   const units = [...new Set(project.boq.map((item) => String(item.unit || "").trim()).filter(Boolean))];
   const unitLabel = units.length === 1 ? units[0] : units.length > 1 ? "وحدات متنوعة" : "وحدة";
   return `${num(totalQty)} ${unitLabel}`;
+}
+
+function getProjectPrimaryQtyUnit(project) {
+  const units = [...new Set(project.boq.map((item) => String(item.unit || "").trim()).filter(Boolean))];
+  if (!units.length) return "وحدة";
+  if (units.length === 1) return units[0];
+  return "وحدات";
 }
 
 function sidebarButton(id, title) {

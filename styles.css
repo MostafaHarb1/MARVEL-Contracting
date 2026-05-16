@@ -470,6 +470,12 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.project-meta-item--items span {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #102c4d;
+}
+
 .split-progress {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
