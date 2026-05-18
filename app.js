@@ -85,6 +85,22 @@ if (!state.systemUsers.length) {
   state.systemUsers = initialState.systemUsers;
 }
 
+state.systemUsers = state.systemUsers.map((user, idx) => {
+  const normalizedPhone = normalizePhone(user.phone);
+  const isValidEgyptPhone = /^01[0125]\d{8}$/.test(normalizedPhone);
+  const isLegacyDefault = String(user.phone || "").trim() === "50000000";
+  if (isLegacyDefault || (!isValidEgyptPhone && idx === 0)) {
+    return {
+      ...user,
+      phone: "01000000000",
+    };
+  }
+  return {
+    ...user,
+    phone: normalizedPhone,
+  };
+});
+
 if (!state.roles.length) {
   state.roles = initialState.roles;
 }
@@ -143,7 +159,7 @@ function renderLogin() {
         <h1 class="auth-title">تسجيل الدخول</h1>
         <form class="form-grid" id="login-form">
           <div class="field">
-            <label for="phone">رقم الهاتف المصري</label>
+            <label for="phone">رقم الهاتف</label>
             <input id="phone" class="input" name="phone" placeholder="مثال: 01012345678" required />
           </div>
           <div class="field">
