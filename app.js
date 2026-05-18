@@ -3314,7 +3314,7 @@ function formatMoneyRaw(value) {
   return `${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(amount)} د.ك`;
+  }).format(amount)} ج.م`;
 }
 
 function parseMoneyValue(value) {
