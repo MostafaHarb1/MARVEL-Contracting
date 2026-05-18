@@ -36,7 +36,7 @@ const initialState = {
     {
       id: crypto.randomUUID(),
       name: "المشرف",
-      phone: "50000000",
+      phone: "01000000000",
       password: "123456",
       roleId: null,
     },
@@ -143,15 +143,15 @@ function renderLogin() {
         <h1 class="auth-title">تسجيل الدخول</h1>
         <form class="form-grid" id="login-form">
           <div class="field">
-            <label for="phone">رقم الهاتف الكويتي</label>
-            <input id="phone" class="input" name="phone" placeholder="مثال: 50000000" required />
+            <label for="phone">رقم الهاتف المصري</label>
+            <input id="phone" class="input" name="phone" placeholder="مثال: 01012345678" required />
           </div>
           <div class="field">
             <label for="password">الرقم السري</label>
             <input id="password" class="input" name="password" type="password" required />
           </div>
           <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
-          <p class="muted">المستخدم الافتراضي: 50000000 - كلمة المرور: 123456</p>
+          <p class="muted">المستخدم الافتراضي: 01000000000 - كلمة المرور: 123456</p>
           <p id="login-error" class="error"></p>
         </form>
       </section>
@@ -166,7 +166,7 @@ function renderLogin() {
     const errorEl = document.getElementById("login-error");
 
     if (!isKuwaitiPhone(phone)) {
-      errorEl.textContent = "الرجاء إدخال رقم هاتف كويتي صحيح";
+      errorEl.textContent = "الرجاء إدخال رقم هاتف مصري صحيح (11 رقم)";
       return;
     }
 
@@ -1636,7 +1636,7 @@ function renderSettingsSection(root) {
         <form id="add-system-user-form" class="form-grid">
           <div class="grid-3">
             <div class="field"><label>الاسم</label><input class="input" name="name" required /></div>
-            <div class="field"><label>رقم الهاتف الكويتي</label><input class="input" name="phone" required /></div>
+            <div class="field"><label>رقم الهاتف المصري (11 رقم)</label><input class="input" name="phone" required /></div>
             <div class="field"><label>كلمة المرور</label><input class="input" type="password" name="password" required /></div>
             <div class="field"><label>الدور</label><select class="select" name="roleId"><option value="">بدون</option>${state.roles.map((r) => `<option value="${r.id}">${escapeHtml(r.name)}</option>`).join("")}</select></div>
           </div>
@@ -1734,7 +1734,7 @@ function renderSettingsSection(root) {
       const form = new FormData(e.currentTarget);
       const phone = String(form.get("phone") || "").trim();
       if (!isKuwaitiPhone(phone)) {
-        showAppPopup("رقم الهاتف الكويتي غير صحيح");
+        showAppPopup("رقم الهاتف المصري غير صحيح (11 رقم)");
         return;
       }
       state.systemUsers.push({
@@ -3355,11 +3355,20 @@ function num(value) {
 }
 
 function isKuwaitiPhone(phone) {
-  return /^(?:\+965|965)?[569]\d{7}$/.test(normalizePhone(phone));
+  const normalized = normalizePhone(phone);
+  return /^01[0125]\d{8}$/.test(normalized);
 }
 
 function normalizePhone(phone) {
-  return String(phone || "").replace(/\s+/g, "");
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (digits.startsWith("0020")) digits = digits.slice(2);
+  if (digits.startsWith("20") && digits.length === 12) {
+    digits = `0${digits.slice(2)}`;
+  }
+  if (digits.startsWith("1") && digits.length === 10) {
+    digits = `0${digits}`;
+  }
+  return digits;
 }
 
 function titleBySection(section) {
